@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleeper Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Estilos específicos para o dashboard */
+        .league-card, .status-group {
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .league-header, .group-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .league-info, .group-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .badge {
+            background-color: #4a6cf7;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .league-content, .group-content {
+            padding: 1rem;
+        }
+        
+        .player-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .player-card:last-child {
+            border-bottom: none;
+        }
+        
+        .player-info {
+            flex-grow: 1;
+        }
+        
+        .status-tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-tag.out { background-color: #ff6b6b; color: white; }
+        .status-tag.doubtful { background-color: #ff9e6b; color: white; }
+        .status-tag.questionable { background-color: #ffd166; color: #333; }
+        .status-tag.probable { background-color: #8ac926; color: white; }
+        .status-tag.ir { background-color: #6a6a6a; color: white; }
+        .status-tag.suspended { background-color: #5a189a; color: white; }
+        .status-tag.pup { background-color: #4361ee; color: white; }
+        
+        .position-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .position-filters {
+            margin-bottom: 1.5rem;
+        }
+        
+        .positions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .position-filter {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .position-filter:hover {
+            background: #e9ecef;
+        }
+        
+        .position-filter input {
+            margin-right: 0.5rem;
+        }
+        
+        .suggestions {
+            position: absolute;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .suggestion-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .no-issues {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            margin-top: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .no-issues .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .top-player-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .player-leagues {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .league-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .league-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <div class="logo">
+                <img src="https://sleeper.com/images/logo-light.svg" alt="Sleeper Logo">
+            </div>
+            <h1>Sleeper Fantasy Dashboard</h1>
+        </div>
+        <div class="header-right">
+            <span class="username">{{ username }}</span>
+            <div class="season-selector">
+                <label for="season-select">Season:</label>
+                <select id="season-select">
+                    <!-- As opções serão preenchidas via JavaScript -->
+                </select>
+            <a href="/logout" class="btn-secondary">Sign Out</a>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" data-tab="status-player">Status Player</button>
+        <button class="tab-btn" data-tab="find-player">Find for Player</button>
+    </nav>
+
+    <main>
+        <!-- Status Player Tab -->
+        <div id="status-player" class="tab-content active">
+            <div class="status-header">
+                <h2>Player Status</h2>
+                <button id="reload-btn" class="btn-primary">↻ Reload</button>
+            </div>
+            <p>List of your starting players with non-Active status</p>
+            
+            <div id="no-issues-message" class="no-issues" style="display: none;">
+                <div class="icon">🎉</div>
+                <h3>Your leagues are ready for this week!</h3>
+                <p>Enjoy the games!</p>
+            </div>
+            
+            <div id="leagues-container" class="leagues-container"></div>
+        </div>
+
+        <!-- Find for Player Tab -->
+        <div id="find-player" class="tab-content">
+            <div class="find-header">
+                <h2>Find for Player</h2>
+                <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
+            </div>
+            
+            <!-- Top 6 Players -->
+            <section class="top-players-section">
+                <h3>Your Top 6 Players</h3>
+                <div id="top-players-container" class="top-players">
+                    <div class="loading">Loading top players...</div>
+                </div>
+            </section>
+            
+            <!-- Player Search -->
+            <section class="player-search-section">
+                <h3>Search Player</h3>
+                
+                <!-- Position Filters -->
+                <div class="position-filters">
+                    <h4>Filter by Position:</h4>
+                    <div class="positions-grid" id="positions-container">
+                        <!-- Positions will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Search Box -->
+                <div class="search-box">
+                    <input type="text" id="player-search-input" placeholder="Enter player name (min 3 characters)">
+                    <div id="search-suggestions" class="suggestions"></div>
+                </div>
+                
+                <!-- Search Results -->
+                <div id="search-results" class="search-results">
+                    <div class="info-message">Search for a player to see results</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Ordem de prioridade dos status
+        const STATUS_ORDER = {
+            'PUP': 0,
+            'IR': 1,
+            'Suspended': 2,
+            'OUT': 3,
+            'Doubtful': 4,
+            'Questionable': 5,
+            'Probable': 6
+        };
+        
+        // Estado de expansão das ligas e status
+        let expandedState = {};
+        // Variável global para armazenar o ano selecionado
+        let currentSeason = new Date().getFullYear();
+
+        // Array de posições na ordem especificada
+        const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DST', 'DL', 'LB', 'DB'];
+        
+        // Mapeamento de status para classes CSS
+        const STATUS_CLASSES = {
+            'OUT': 'out',
+            'Doubtful': 'doubtful',
+            'Questionable': 'questionable',
+            'Probable': 'probable',
+            'IR': 'ir',
+            'Suspended': 'suspended',
+            'PUP': 'pup'
+        };
+
+        // Implementação das abas
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove a classe active de todas as abas e botões
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Adiciona a classe active ao botão clicado
+                button.classList.add('active');
+                
+                // Mostra o conteúdo correspondente
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+                
+                // Se for a aba de busca, inicializa os componentes
+                if (tabId === 'find-player') {
+                    initFindForPlayerTab();
+                }
+            });
+        });
+        
+        // Carrega dados de status
+        async function loadPlayerStatus() {
+            const container = document.getElementById('leagues-container');
+            const noIssues = document.getElementById('no-issues-message');
+            const reloadBtn = document.getElementById('reload-btn');
+            
+            reloadBtn.disabled = true;
+            reloadBtn.textContent = "Loading...";
+            container.innerHTML = '<div class="loading">Loading player status...</div>';
+            
+            try {
+                const params = new URLSearchParams({ season: currentSeason });
+                const response = await fetch(`/api/player-status?${params}`);
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const leagues = await response.json();
+                
+                // Esconde a mensagem de "sem problemas" se houver ligas com problemas
+                noIssues.style.display = Object.keys(leagues).length === 0 ? 'block' : 'none';
+                
+                // Limpa o container
+                container.innerHTML = '';
+                
+                // Processa cada liga
+                for (const [leagueId, league] of Object.entries(leagues)) {
+                    // Ordena os grupos de status pela ordem definida
+                    league.issues.sort((a, b) => {
+                        const orderA = STATUS_ORDER[a.status] || 99;
+                        const orderB = STATUS_ORDER[b.status] || 99;
+                        return orderA - orderB;
+                    });
+                    
+                    // Cria o elemento da liga
+                    const leagueEl = createLeagueElement(leagueId, league);
+                    container.appendChild(leagueEl);
+                }
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        <p>Error loading player status:</p>
+                        <p><strong>${error.message}</strong></p>
+                    </div>
+                `;
+            } finally {
+                reloadBtn.textContent = "↻ Reload";
+                reloadBtn.disabled = false;
+            }
+        }
+
+        // Cria elemento da liga
+        function createLeagueElement(leagueId, league) {
+            const leagueEl = document.createElement('div');
+            leagueEl.className = 'league-card';
+            leagueEl.dataset.leagueId = leagueId;
+            
+            // Verifica se a liga está expandida
+            const isExpanded = expandedState[leagueId]?.expanded || false;
+            
+            leagueEl.innerHTML = `
+                <div class="league-header" data-expanded="${isExpanded}">
+                    <div class="league-info">
+                        <h3>${league.name}</h3>
+                        <span class="badge">${league.total_issues} issues</span>
+                    </div>
+                    <span class="toggle-icon">${isExpanded ? '▲' : '▼'}</span>
+                </div>
+                <div class="league-content" style="display: ${isExpanded ? 'block' : 'none'}">
+                    ${renderStatusGroups(leagueId, league.issues)}
+                </div>
+            `;
+            
+            // Adiciona evento de toggle
+            leagueEl.querySelector('.league-header').addEventListener('click', () => {
+                toggleLeague(leagueId, leagueEl);
+            });
+            
+            return leagueEl;
+        }
+        
+        // Renderiza grupos de status
+        function renderStatusGroups(leagueId, issues) {
+            return issues.map(issue => {
+                // Verifica se o grupo de status está expandido
+                const isExpanded = expandedState[leagueId]?.statuses?.[issue.status] || false;
+                
+                return `
+                    <div class="status-group">
+                        <div class="group-header" data-status="${issue.status}" data-expanded="${isExpanded}">
+                            <div class="group-info">
+                                <h4>${issue.status}</h4>
+                                <span class="badge">${issue.count}</span>
+                            </div>
+                            <span class="toggle-icon">${isExpanded ? '▲' : '▼'}</span>
+                        </div>
+                        <div class="group-content" style="display: ${isExpanded ? 'block' : 'none'}">
+                            ${renderGroupContent(issue)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Renderiza conteúdo do grupo
+        function renderGroupContent(issue) {
+            if (issue.is_empty) {
+                return `
+                    <div class="empty-positions">
+                        <div class="position-list">
+                            ${issue.positions.map(pos => `<div class="position-tag">${pos}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="player-list">
+                        ${issue.players.map(player => `
+                            <div class="player-card">
+                                <div class="player-info">
+                                    <strong>${player.name}</strong>
+                                    <span>${player.position} - ${player.team}</span>
+                                </div>
+                                <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+        
+        // Alterna visibilidade da liga
+        function toggleLeague(leagueId, leagueEl) {
+            const header = leagueEl.querySelector('.league-header');
+            const content = leagueEl.querySelector('.league-content');
+            const isExpanded = header.dataset.expanded === 'true';
+            
+            // Atualiza estado
+            expandedState[leagueId] = expandedState[leagueId] || {};
+            expandedState[leagueId].expanded = !isExpanded;
+            
+            // Atualiza UI
+            header.dataset.expanded = !isExpanded;
+            content.style.display = !isExpanded ? 'block' : 'none';
+            header.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
+        }
+        
+        // Alterna visibilidade do grupo de status
+        function toggleStatusGroup(leagueId, groupHeader) {
+            const group = groupHeader.closest('.status-group');
+            const content = group.querySelector('.group-content');
+            const isExpanded = groupHeader.dataset.expanded === 'true';
+            const status = groupHeader.dataset.status;
+            
+            // Atualiza estado
+            expandedState[leagueId] = expandedState[leagueId] || {};
+            expandedState[leagueId].statuses = expandedState[leagueId].statuses || {};
+            expandedState[leagueId].statuses[status] = !isExpanded;
+            
+            // Atualiza UI
+            groupHeader.dataset.expanded = !isExpanded;
+            content.style.display = !isExpanded ? 'block' : 'none';
+            groupHeader.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
+        }
+        
+        // Inicializa os filtros de posição
+        function initPositionFilters() {
+            const container = document.getElementById('positions-container');
+            container.innerHTML = '';
+            
+            POSITIONS.forEach(position => {
+                const label = document.createElement('label');
+                label.className = 'position-filter';
+                label.innerHTML = `
+                    <input type="checkbox" name="position" value="${position}" checked>
+                    ${position}
+                `;
+                container.appendChild(label);
+            });
+            
+            // Adiciona evento para atualizar sugestões quando os filtros mudarem
+            container.addEventListener('change', updateSearchSuggestions);
+        }
+        
+        // Carrega os top 6 jogadores
+        async function loadTopPlayers() {
+            const container = document.getElementById('top-players-container');
+            container.innerHTML = '<div class="loading">Loading your top players...</div>';
+            
+            
+
+            try {
+                const params = new URLSearchParams({ season: currentSeason });
+                const response = await fetch(`/api/top-players?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load top players');
+                }
+                
+                const players = await response.json();
+                
+                if (players.length === 0) {
+                    container.innerHTML = '<div class="no-players">No players found in your leagues</div>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                players.forEach(player => {
+                    const playerEl = document.createElement('div');
+                    playerEl.className = 'top-player-card';
+                    playerEl.innerHTML = `
+                        <div class="player-header">
+                            <h4>${player.name}</h4>
+                            <span class="badge">${player.count} leagues</span>
+                        </div>
+                        <div class="player-status">Status: ${player.status}</div>
+                        <div class="player-leagues">
+                            ${player.leagues.slice(0, 3).map(league => `
+                                <div class="league-item">
+                                    <span>${league.league_name}</span>
+                                    <span>${league.position}</span>
+                                </div>
+                            `).join('')}
+                            ${player.leagues.length > 3 ? `<div class="more-leagues">+${player.leagues.length - 3} more</div>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(playerEl);
+                });
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        <p>Error loading top players: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Atualiza sugestões de busca
+        async function updateSearchSuggestions() {
+            const input = document.getElementById('player-search-input');
+            const query = input.value.trim();
+            const suggestions = document.getElementById('search-suggestions');
+            
+            if (query.length < 3) {
+                suggestions.innerHTML = '';
+                suggestions.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const selectedPositions = Array.from(
+                    document.querySelectorAll('.position-filter input:checked')
+                ).map(cb => cb.value);
+                
+                const params = new URLSearchParams();
+                params.append('query', query);
+                params.append('season', currentSeason);
+                selectedPositions.forEach(pos => params.append('positions', pos));
+                
+                const response = await fetch(`/api/search-players?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+                
+                const players = await response.json();
+                
+                if (players.length === 0) {
+                    suggestions.innerHTML = '<div class="no-results">No players match your search</div>';
+                    suggestions.style.display = 'block';
+                    return;
+                }
+                
+                suggestions.innerHTML = '';
+                players.forEach(player => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerHTML = `
+                        <strong>${player.name}</strong>
+                        <span>${player.positions.join(', ')}</span>
+                        <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status_abbr}</span>
+                    `;
+                    
+                    div.addEventListener('click', () => {
+                        input.value = player.name;
+                        suggestions.innerHTML = '';
+                        suggestions.style.display = 'none';
+                        searchPlayer(player);
+                    });
+                    
+                    suggestions.appendChild(div);
+                });
+                
+                suggestions.style.display = 'block';
+                
+            } catch (error) {
+                suggestions.innerHTML = '<div class="no-results">Search temporarily unavailable</div>';
+                suggestions.style.display = 'block';
+            }
+        }
+        
+        // Busca detalhes de um jogador específico
+        async function searchPlayer(player) {
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = '<div class="loading">Searching player...</div>';
+            
+            try {
+                // Aqui você implementaria a busca detalhada do jogador
+                // Por enquanto, vamos apenas mostrar as informações básicas
+                resultsContainer.innerHTML = `
+                    <div class="player-card">
+                        <div class="player-info">
+                            <h4>${player.name}</h4>
+                            <p>Position: ${player.positions.join(', ')}</p>
+                            <p>Status: ${player.status} ${player.status_abbr ? `(${player.status_abbr})` : ''}</p>
+                        </div>
+                        <div class="player-notes">
+                            <p>Player details functionality coming soon!</p>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <p>Error loading player details: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function loadAvailableYears() {
+            try {
+                const response = await fetch('/api/available-years');
+                if (!response.ok) {
+                    throw new Error('Failed to load available years');
+                }
+                
+                const years = await response.json();
+                const seasonSelect = document.getElementById('season-select');
+                
+                // Ordenar anos em ordem decrescente
+                years.sort((a, b) => b - a);
+
+                // Limpa opções existentes
+                seasonSelect.innerHTML = '';
+
+                // Preencher o seletor
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    seasonSelect.appendChild(option);
+                });
+                // Define o ano atual como padrão
+                const currentYear = new Date().getFullYear();
+                seasonSelect.value = years.includes(currentYear) ? currentYear : years[0];
+                currentSeason = parseInt(seasonSelect.value);
+
+                // Adicionar evento de mudança
+                seasonSelect.addEventListener('change', () => {
+                    currentSeason = parseInt(seasonSelect.value);
+                    reloadCurrentTab();
+                });
+                
+            } catch (error) {
+                console.error('Error loading years:', error);
+                // Fallback caso ocorra erro
+                const seasonSelect = document.getElementById('season-select');
+                seasonSelect.innerHTML = `
+                    <option value="${new Date().getFullYear()}">
+                        ${new Date().getFullYear()}
+                    </option>
+                `;
+            }
+        }
+
+        // Função para recarregar a aba atual
+        function reloadCurrentTab() {
+            const activeTab = document.querySelector('.tab-content.active').id;
+            
+            if (activeTab === 'status-player') {
+                loadPlayerStatus();
+            } else if (activeTab === 'find-player') {
+                initFindForPlayerTab();
+            }
+        }
+
+        // Inicialização da aba "Find for Player"
+        function initFindForPlayerTab() {
+            loadTopPlayers();
+            initPositionFilters();
+
+            // Evento para input de busca
+            const searchInput = document.getElementById('player-search-input');
+            searchInput.addEventListener('input', updateSearchSuggestions);
+            
+            // Evento para perder foco do input (esconde sugestões)
+            searchInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    const suggestions = document.getElementById('search-suggestions');
+                    suggestions.style.display = 'none';
+                }, 200);
+            });
+            
+            // Botão de refresh
+            document.getElementById('refresh-find-btn').addEventListener('click', () => {
+                loadTopPlayers();
+            });
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Carrega os anos disponíveis primeiro
+            loadAvailableYears().then(() => {
+                // Inicializa a aba ativa após carregar os anos
+                const activeTab = document.querySelector('.tab-content.active').id;
+                
+                if (activeTab === 'status-player') {
+                    loadPlayerStatus();
+                } else if (activeTab === 'find-player') {
+                    initFindForPlayerTab();
+                }
+            });
+
+            // Botão de reload
+            document.getElementById('reload-btn').addEventListener('click', loadPlayerStatus);
+            
+            // Evento para abas
+            document.querySelector('[data-tab="status-player"]').addEventListener('click', loadPlayerStatus);
+            document.querySelector('[data-tab="find-player"]').addEventListener('click', initFindForPlayerTab);
+            
+            // Inicializa a aba de busca se for a ativa
+            //if (document.querySelector('.tab-content.active').id === 'find-player') {
+            //    initFindForPlayerTab();
+            //}
+        });
+    </script>
+</body>
+</html>
