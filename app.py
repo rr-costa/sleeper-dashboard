@@ -114,7 +114,7 @@ def _process_empty_positions(starters):
     return [
         f"Position {i+1}" 
         for i, player_id in enumerate(starters) 
-        if not player_id or player_id == 'None'
+        if not player_id or player_id == 'None' or player_id == '0'
     ]
 
 def _process_player_status(player_id, all_players):
@@ -127,7 +127,7 @@ def _process_player_status(player_id, all_players):
         app.logger.warning(f"Player not found: {player_id}")
         return None, None
     
-    status = player.get('status', 'Active')
+    status = player.get('injury_status', 'Active')
     return player, status if status != 'Active' else None
 
 def get_starters_with_status(user_id,season):
