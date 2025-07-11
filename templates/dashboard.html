@@ -392,9 +392,17 @@
                 </div>
             `;
             
-            // Adiciona evento de toggle
+            // Adiciona evento de toggle para a liga
             leagueEl.querySelector('.league-header').addEventListener('click', () => {
                 toggleLeague(leagueId, leagueEl);
+            });
+            
+            // Adiciona evento de toggle para os grupos de status
+            leagueEl.querySelectorAll('.group-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Impede que o evento propague para a liga
+                    toggleStatusGroup(leagueId, header);
+                });
             });
             
             return leagueEl;
@@ -403,7 +411,6 @@
         // Renderiza grupos de status
         function renderStatusGroups(leagueId, issues) {
             return issues.map(issue => {
-                // Verifica se o grupo de status está expandido
                 const isExpanded = expandedState[leagueId]?.statuses?.[issue.status] || false;
                 
                 return `
@@ -423,6 +430,24 @@
             }).join('');
         }
         
+        function toggleStatusGroup(leagueId, groupHeader) {
+            const group = groupHeader.closest('.status-group');
+            const content = group.querySelector('.group-content');
+            const isExpanded = groupHeader.dataset.expanded === 'true';
+            const status = groupHeader.dataset.status;
+            
+            // Atualiza estado
+            expandedState[leagueId] = expandedState[leagueId] || {};
+            expandedState[leagueId].statuses = expandedState[leagueId].statuses || {};
+            expandedState[leagueId].statuses[status] = !isExpanded;
+            
+            // Atualiza UI
+            groupHeader.dataset.expanded = !isExpanded;
+            content.style.display = !isExpanded ? 'block' : 'none';
+            groupHeader.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
+        }
+
+
         // Renderiza conteúdo do grupo
         function renderGroupContent(issue) {
             if (issue.is_empty) {
@@ -464,24 +489,6 @@
             header.dataset.expanded = !isExpanded;
             content.style.display = !isExpanded ? 'block' : 'none';
             header.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
-        }
-        
-        // Alterna visibilidade do grupo de status
-        function toggleStatusGroup(leagueId, groupHeader) {
-            const group = groupHeader.closest('.status-group');
-            const content = group.querySelector('.group-content');
-            const isExpanded = groupHeader.dataset.expanded === 'true';
-            const status = groupHeader.dataset.status;
-            
-            // Atualiza estado
-            expandedState[leagueId] = expandedState[leagueId] || {};
-            expandedState[leagueId].statuses = expandedState[leagueId].statuses || {};
-            expandedState[leagueId].statuses[status] = !isExpanded;
-            
-            // Atualiza UI
-            groupHeader.dataset.expanded = !isExpanded;
-            content.style.display = !isExpanded ? 'block' : 'none';
-            groupHeader.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
         }
         
         // Inicializa os filtros de posição

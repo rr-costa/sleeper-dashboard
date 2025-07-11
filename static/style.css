@@ -853,3 +853,34 @@ main {
         font-size: 0.9rem;
     }
 }
+
+.group-header {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.group-header:hover {
+    background-color: #e9ecef;
+}
+/* Adicione estas regras CSS */
+.group-header {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.group-header:hover {
+    background-color: #e9ecef;
+}
+
+/* Mantenha os estilos existentes e adicione este */
+.status-group {
+    margin-bottom: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.group-content {
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+}
