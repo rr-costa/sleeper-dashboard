@@ -884,3 +884,56 @@ main {
     padding: 0.5rem;
     background-color: #f8f9fa;
 }
+/* Estilos para a tabela de ligas */
+.player-leagues-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.player-leagues-table th, 
+.player-leagues-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.player-leagues-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pagination-btn:hover {
+    background-color: #3a5be7;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: #6c757d;
+}
