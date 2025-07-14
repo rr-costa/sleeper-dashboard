@@ -22,6 +22,7 @@ app.config.update(
 SPORT = 'nfl'
 CURRENT_SEASON = datetime.now().year
 season = CURRENT_SEASON  # Temporada atual, pode ser alterada dinamicamente
+TOPN = 5  # Número de jogadores a serem retornados nas listas
 
 # Configuração unificada de status
 STATUS_CONFIG = {
@@ -109,17 +110,19 @@ def get_league_data(league_id, components):
     return data
 
 # ==================== PROCESSAMENTO DE STATUS ====================
-def _process_empty_positions(starters):
-    """Identifica posições vazias no lineup"""
-    return [
-        f"Position {i+1}" 
-        for i, player_id in enumerate(starters) 
-        if not player_id or player_id == 'None' or player_id == '0'
-    ]
+def _process_empty_positions(starters, roster_positions):
+    """Identifica posições vazias no lineup usando nomes reais"""
+    empty = []
+    for i, player_id in enumerate(starters):
+        if not player_id or player_id in ['None', '0']:
+            # Usar a posição real se disponível, senão manter o formato antigo
+            position_name = roster_positions[i] if i < len(roster_positions) else f"Position {i+1}"
+            empty.append(position_name)
+    return empty
 
 def _process_player_status(player_id, all_players):
     """Processa status de um jogador individual"""
-    if not player_id or player_id == 'None':
+    if not player_id or player_id in ['None', '0', '']:
         return None, None
     
     player = all_players.get(player_id)
@@ -130,15 +133,21 @@ def _process_player_status(player_id, all_players):
     status = player.get('injury_status', 'Active')
     return player, status if status != 'Active' else None
 
-def get_starters_with_status(user_id,season):
-    """Obtém todos os jogadores titulares com status problemáticos"""
+def get_starters_with_status(user_id, season):
     try:
-        leagues = get_user_leagues(user_id,season)
+        leagues = get_user_leagues(user_id, season)
         all_players = get_all_players()
         leagues_data = {}
         
         for league in leagues:
             league_id = league['league_id']
+            # Obter configurações da liga para pegar as posições
+            league_settings = get_league_settings(league_id)
+            if not league_settings:
+                continue
+                
+            roster_positions = league_settings.get('roster_positions', [])
+            
             rosters = get_rosters(league_id, user_id)
             
             league_issues = []
@@ -147,8 +156,8 @@ def get_starters_with_status(user_id,season):
             for roster in rosters:
                 starters = roster.get('starters', []) or []
                 
-                # Verificar posições vazias
-                empty_positions = _process_empty_positions(starters)
+                # Passar roster_positions para a função
+                empty_positions = _process_empty_positions(starters, roster_positions)
                 if empty_positions:
                     league_issues.append({
                         'status': 'Empty Position',
@@ -198,6 +207,11 @@ def get_starters_with_status(user_id,season):
     except Exception as e:
         app.logger.error(f"Error in get_starters_with_status: {str(e)}", exc_info=True)
         return {}
+
+
+def get_league_settings(league_id):
+    """Obtém as configurações da liga incluindo as posições do roster"""
+    return sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}')
 
 # ==================== DECORATORS E HELPERS ====================
 def login_required(f):
@@ -310,7 +324,7 @@ def player_status():
 @app.route('/api/top-players')
 @login_required
 def top_players():
-    """Retorna os top 6 jogadores do usuário"""
+    """Retorna os top TOPN jogadores do usuário"""
     try:
         user_id = session['user_id']
         season = request.args.get('season', CURRENT_SEASON, type=int)
@@ -335,7 +349,7 @@ def top_players():
                         continue
                     
                     player = all_players.get(player_id, {})
-                    full_name = player.get('full_name', f'Player_{player_id[:6]}')
+                    full_name = player.get('full_name', f'Player_{player_id[:TOPN]}')
                     
                     if full_name not in player_counter:
                         player_counter[full_name] = 0
@@ -360,7 +374,7 @@ def top_players():
             'count': count,
             'status': player_status[player],
             'leagues': player_leagues[player]
-        } for player, count in sorted_players[:6]]
+        } for player, count in sorted_players[:TOPN]]
         
         return jsonify(top_players)
     
@@ -441,6 +455,75 @@ def handle_global_errors(e):
         'message': 'An unexpected error occurred'
     }), 500
 
+# ==================== ROTA FAVICON ====================
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204  # Retorna uma resposta vazia com status 204 (No Content)
+
+@app.route('/api/player-details')
+@login_required
+def player_details():
+    """Endpoint para obter detalhes do jogador em todas as ligas"""
+    try:
+        player_name = request.args.get('name', '').strip()
+        season = request.args.get('season', CURRENT_SEASON, type=int)
+        user_id = session['user_id']
+        
+        if not player_name:
+            return jsonify({'error': 'Player name is required'}), 400
+        
+        # Obter todas as ligas do usuário
+        leagues = get_user_leagues(user_id, season)
+        all_players = get_all_players()
+        
+        if not leagues or not all_players:
+            return jsonify({'error': 'No data available'}), 404
+        
+        # Encontrar o ID do jogador pelo nome
+        player_id = None
+        for pid, player in all_players.items():
+            if player.get('full_name', '').lower() == player_name.lower():
+                player_id = pid
+                break
+        
+        if not player_id:
+            return jsonify({'error': 'Player not found'}), 404
+        
+        player_data = all_players.get(player_id, {})
+        leagues_with_player = []
+        
+        # Verificar em quais ligas o jogador está (APENAS NAS DO USUÁRIO)
+        for league in leagues:
+            league_id = league['league_id']
+            rosters = get_rosters(league_id, user_id) or []  # FILTRA APENAS ROSTERS DO USUÁRIO
+            
+            for roster in rosters:
+                players_list = roster.get('players') or []
+                
+                if player_id in players_list:
+                    position = player_data.get('position', '?')
+                    status = player_data.get('injury_status', 'Active')
+                    status_abbr = STATUS_CONFIG.get(status, {}).get('abbr', '')
+                    
+                    leagues_with_player.append({
+                        'league_id': league_id,
+                        'league_name': league['name'],
+                        'position': position,
+                        'status': status,
+                        'status_abbr': status_abbr,
+                        'roster_id': roster.get('roster_id', 'unknown')
+                    })
+                    break  # Jogador só pode estar em um roster por liga
+        
+        return jsonify({
+            'player_name': player_name,
+            'leagues': leagues_with_player
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error in player_details: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+    
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

@@ -180,6 +180,17 @@
         .league-item:last-child {
             border-bottom: none;
         }
+
+        .more-leagues {
+            color: #4a6cf7;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .extra-leagues {
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -231,9 +242,9 @@
                 <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
             </div>
             
-            <!-- Top 6 Players -->
+            <!-- Top 5 Players -->
             <section class="top-players-section">
-                <h3>Your Top 6 Players</h3>
+                <h3>Your Top 5 Players</h3>
                 <div id="top-players-container" class="top-players">
                     <div class="loading">Loading top players...</div>
                 </div>
@@ -510,12 +521,10 @@
             container.addEventListener('change', updateSearchSuggestions);
         }
         
-        // Carrega os top 6 jogadores
+        // Carrega os top 5 jogadores
         async function loadTopPlayers() {
             const container = document.getElementById('top-players-container');
             container.innerHTML = '<div class="loading">Loading your top players...</div>';
-            
-            
 
             try {
                 const params = new URLSearchParams({ season: currentSeason });
@@ -536,6 +545,9 @@
                 players.forEach(player => {
                     const playerEl = document.createElement('div');
                     playerEl.className = 'top-player-card';
+                    playerEl.dataset.playerId = player.name; // Usando nome como ID para simplificar
+                    
+                    // Mantenha as 3 primeiras ligas visíveis
                     playerEl.innerHTML = `
                         <div class="player-header">
                             <h4>${player.name}</h4>
@@ -549,9 +561,35 @@
                                     <span>${league.position}</span>
                                 </div>
                             `).join('')}
-                            ${player.leagues.length > 3 ? `<div class="more-leagues">+${player.leagues.length - 3} more</div>` : ''}
                         </div>
                     `;
+                    
+                    // Adicione ligas extras (se houver) em um container oculto
+                    if (player.leagues.length > 3) {
+                        const extraLeaguesEl = document.createElement('div');
+                        extraLeaguesEl.className = 'extra-leagues';
+                        extraLeaguesEl.style.display = 'none'; // Inicialmente oculto
+                        
+                        extraLeaguesEl.innerHTML = player.leagues.slice(3).map(league => `
+                            <div class="league-item">
+                                <span>${league.league_name}</span>
+                                <span>${league.position}</span>
+                            </div>
+                        `).join('');
+                        
+                        playerEl.querySelector('.player-leagues').appendChild(extraLeaguesEl);
+                        
+                        // Adicione o botão "more" com funcionalidade
+                        const moreButton = document.createElement('div');
+                        moreButton.className = 'more-leagues';
+                        moreButton.innerHTML = `+${player.leagues.length - 3} more`;
+                        moreButton.addEventListener('click', function() {
+                            toggleExtraLeagues(playerEl);
+                        });
+                        
+                        playerEl.querySelector('.player-leagues').appendChild(moreButton);
+                    }
+                    
                     container.appendChild(playerEl);
                 });
                 
@@ -628,26 +666,118 @@
             }
         }
         
+        // Variáveis globais para paginação
+        let currentPlayerLeagues = [];
+        let currentPage = 1;
+        const leaguesPerPage = 5;
+
+        // Função para mudar de página
+        function changePage(newPage) {
+            currentPage = newPage;
+            renderPlayerLeaguesTable(currentPlayerLeagues[0]?.player_name || 'Player');
+        }
+
+        function renderPlayerLeaguesTable(playerName) {
+            const resultsContainer = document.getElementById('search-results');
+            const totalLeagues = currentPlayerLeagues.length;
+            const totalPages = Math.ceil(totalLeagues / leaguesPerPage);
+            
+            // Calcular índices para a página atual
+            const startIndex = (currentPage - 1) * leaguesPerPage;
+            const endIndex = Math.min(startIndex + leaguesPerPage, totalLeagues);
+            const pageLeagues = currentPlayerLeagues.slice(startIndex, endIndex);
+            
+            let html = `
+                <div class="player-header">
+                    <h3>${playerName}</h3>
+                    <div>Found in ${totalLeagues} leagues</div>
+                </div>
+                
+                <table class="player-leagues-table">
+                    <thead>
+                        <tr>
+                            <th>League Name</th>
+                            <th>Position</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            pageLeagues.forEach(league => {
+                html += `
+                    <tr>
+                        <td>${league.league_name}</td>
+                        <td>${league.position}</td>
+                        <td>
+                            <span class="status-tag ${STATUS_CLASSES[league.status] || ''}">
+                                ${league.status} ${league.status_abbr ? `(${league.status_abbr})` : ''}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            // Adicionar controles de paginação se necessário
+            if (totalPages > 1) {
+                html += `<div class="pagination-controls">`;
+                
+                if (currentPage > 1) {
+                    html += `<button class="pagination-btn" onclick="changePage(${currentPage - 1})">← Previous</button>`;
+                }
+                
+                html += `<span>Page ${currentPage} of ${totalPages}</span>`;
+                
+                if (currentPage < totalPages) {
+                    html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})">Next →</button>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            resultsContainer.innerHTML = html;
+        }       
+
         // Busca detalhes de um jogador específico
         async function searchPlayer(player) {
             const resultsContainer = document.getElementById('search-results');
             resultsContainer.innerHTML = '<div class="loading">Searching player...</div>';
             
             try {
-                // Aqui você implementaria a busca detalhada do jogador
-                // Por enquanto, vamos apenas mostrar as informações básicas
-                resultsContainer.innerHTML = `
-                    <div class="player-card">
-                        <div class="player-info">
-                            <h4>${player.name}</h4>
-                            <p>Position: ${player.positions.join(', ')}</p>
-                            <p>Status: ${player.status} ${player.status_abbr ? `(${player.status_abbr})` : ''}</p>
+                // Chamar a nova API de detalhes do jogador
+                const params = new URLSearchParams({
+                    name: player.name,
+                    season: currentSeason
+                });
+                
+                const response = await fetch(`/api/player-details?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.leagues || data.leagues.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="no-results">
+                            ${player.name} is not on any of your teams this season
                         </div>
-                        <div class="player-notes">
-                            <p>Player details functionality coming soon!</p>
-                        </div>
-                    </div>
-                `;
+                    `;
+                    return;
+                }
+                
+                // Armazenar dados para paginação
+                currentPlayerLeagues = data.leagues;
+                currentPage = 1;
+                
+                // Renderizar tabela com paginação
+                renderPlayerLeaguesTable(data.player_name);
                 
             } catch (error) {
                 resultsContainer.innerHTML = `
@@ -657,6 +787,7 @@
                 `;
             }
         }
+
         
         async function loadAvailableYears() {
             try {
@@ -724,6 +855,18 @@
             const searchInput = document.getElementById('player-search-input');
             searchInput.addEventListener('input', updateSearchSuggestions);
             
+
+            searchInput.addEventListener('input', function() {
+                updateSearchSuggestions();
+                
+                // Limpar resultados se o campo estiver vazio
+                if (this.value.trim() === '') {
+                    document.getElementById('search-results').innerHTML = 
+                        '<div class="info-message">Search for a player to see results</div>';
+                    currentPlayerLeagues = [];
+                }
+            });
+
             // Evento para perder foco do input (esconde sugestões)
             searchInput.addEventListener('blur', () => {
                 setTimeout(() => {
@@ -738,6 +881,19 @@
             });
         }
         
+        function toggleExtraLeagues(playerEl) {
+            const extraLeagues = playerEl.querySelector('.extra-leagues');
+            const moreButton = playerEl.querySelector('.more-leagues');
+            
+            if (extraLeagues.style.display === 'none') {
+                extraLeagues.style.display = 'block';
+                moreButton.innerHTML = '- show less';
+            } else {
+                extraLeagues.style.display = 'none';
+                moreButton.innerHTML = `+${playerEl.querySelectorAll('.extra-leagues .league-item').length} more`;
+            }
+        }
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             // Carrega os anos disponíveis primeiro
