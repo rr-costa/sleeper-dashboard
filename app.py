@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
+
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'secret_key_default')
 app.config.update(
@@ -17,6 +19,13 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=1),
     SESSION_REFRESH_EACH_REQUEST=True
 )
+#LOG
+if os.getenv('FLASK_ENV') == 'development':
+    app.logger.setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
+else:
+    app.logger.setLevel(logging.WARNING)
+    logging.getLogger().setLevel(logging.WARNING)
 
 # Configurações
 SPORT = 'nfl'
@@ -45,10 +54,6 @@ PLAYERS_CACHE = {
     'expiry': 600  # 10 minutos em segundos
 }
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
-app.logger.setLevel(logging.INFO if os.getenv('FLASK_ENV') == 'development' else logging.WARNING)
-
 # ==================== FUNÇÕES AUXILIARES ====================
 def sleeper_request(url, timeout=10):
     """Wrapper para requests à API Sleeper com tratamento de erros"""
@@ -63,23 +68,72 @@ def sleeper_request(url, timeout=10):
         return None
 
 def get_all_players():
-    """Obtém todos os jogadores da NFL com cache de 10 minutos"""
+    """Obtém todos os jogadores ativos da NFL com cache de 10 minutos"""
     current_time = datetime.now()
     
-    if (PLAYERS_CACHE['data'] is not None and 
-            current_time - PLAYERS_CACHE['timestamp'] < timedelta(seconds=PLAYERS_CACHE['expiry'])):
-        return PLAYERS_CACHE['data']
+    # Verifica se o cache é válido
+    if PLAYERS_CACHE['data'] is not None:
+        age = (current_time - PLAYERS_CACHE['timestamp']).total_seconds()
+        #app.logger.info(f"Cache disponível - idade: {age:.1f}s")
+        if age < PLAYERS_CACHE['expiry']:
+            #app.logger.info(f"Retornando cache ({len(PLAYERS_CACHE['data'])} jogadores)")
+            return PLAYERS_CACHE['data']
     
     try:
+        #app.logger.info("Buscando jogadores da API Sleeper...")
         players = sleeper_request(f'https://api.sleeper.app/v1/players/{SPORT}', timeout=15)
-        if players:
-            PLAYERS_CACHE['data'] = players
-            PLAYERS_CACHE['timestamp'] = current_time
-        return players or {}
-    except Exception as e:
-        app.logger.error(f"Error fetching players: {str(e)}")
-        return PLAYERS_CACHE['data'] or {}
+        
+        if not players:
+            app.logger.warning("Resposta vazia da API de jogadores")
+            return PLAYERS_CACHE['data'] or {}
+            
+        #app.logger.info(f"Total de jogadores recebidos: {len(players)}")
+        #app.logger.info(f"jogadores recebidos: {(players)}")
 
+        active_players = {}
+        active_count = 0
+        inactive_reasons = {
+            'active_false': 0,
+            'status_inactive': 0,
+            'no_team': 0
+        }
+        
+        for player_id, player_data in players.items():
+            # Critério 1: Campo 'active' deve ser True
+            if player_data.get('active') is not True:
+                inactive_reasons['active_false'] += 1
+                continue
+                
+            # Critério 2: Status não deve ser 'Retired' ou 'Inactive'
+            #if player_data.get('status') in ['Retired', 'Inactive']:
+            #    inactive_reasons['status_inactive'] += 1
+            #    continue
+                
+            # Critério 3: Deve pertencer a um time (não ser null)
+            #if player_data.get('team') is None:
+            #    inactive_reasons['no_team'] += 1
+            #    continue
+                
+            active_players[player_id] = player_data
+            active_count += 1
+        
+        #app.logger.info(f"Jogadores ativos filtrados: {active_count}")
+        #app.logger.info(f"Razões de inatividade: {inactive_reasons}")
+        
+        # Log de exemplo
+        if active_count > 0:
+            sample_player = next(iter(active_players.values()))
+            #app.logger.info(f"Exemplo de jogador ativo: {sample_player.get('full_name')} - Team: {sample_player.get('team')}")
+        
+        PLAYERS_CACHE['data'] = active_players
+        PLAYERS_CACHE['timestamp'] = current_time
+        
+        return active_players
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
+        return PLAYERS_CACHE['data'] or {}
+    
 def get_user_id(username):
     """Obtém o ID do usuário pelo username do Sleeper"""
     user_data = sleeper_request(f'https://api.sleeper.app/v1/user/{username}', timeout=5)
