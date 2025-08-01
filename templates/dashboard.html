@@ -272,9 +272,9 @@
                 <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
             </div>
             
-            <!-- Top 5 Players -->
+            <!-- Top 6 Players -->
             <section class="top-players-section">
-                <h3>Your Top 5 Players</h3>
+                <h3>Your Top 6 Players</h3>
                 <div id="top-players-container" class="top-players">
                     <div class="loading">Loading top players...</div>
                 </div>
@@ -369,8 +369,8 @@
             });
         });
         
-        // Carrega dados de status
-        async function loadPlayerStatus() {
+        // Carrega dados de status (com suporte a forceRefresh)
+        async function loadPlayerStatus(forceRefresh = false) {
             const container = document.getElementById('leagues-container');
             const noIssues = document.getElementById('no-issues-message');
             const reloadBtn = document.getElementById('reload-btn');
@@ -381,7 +381,13 @@
             
             try {
                 const params = new URLSearchParams({ season: currentSeason });
-                const response = await fetch(`/api/player-status?${params}`);
+                
+                // Seleciona endpoint com base no refresh
+                const endpoint = forceRefresh 
+                    ? `/api/refresh-league-status?${params}` 
+                    : `/api/player-status?${params}`;
+                    
+                const response = await fetch(endpoint);
 
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
@@ -481,7 +487,7 @@
                 `;
             }).join('');
         }
-        
+
         function toggleStatusGroup(leagueId, groupHeader) {
             const group = groupHeader.closest('.status-group');
             const content = group.querySelector('.group-content');
@@ -498,7 +504,6 @@
             content.style.display = !isExpanded ? 'block' : 'none';
             groupHeader.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
         }
-
 
         // Renderiza conteúdo do grupo
         function renderGroupContent(issue) {
@@ -782,7 +787,7 @@
             }
             
             resultsContainer.innerHTML = html;
-        }       
+        }
 
         // Busca detalhes de um jogador específico
         async function searchPlayer(player) {
@@ -829,7 +834,6 @@
             }
         }
 
-        
         async function loadAvailableYears() {
             try {
                 const response = await fetch('/api/available-years');
@@ -896,18 +900,6 @@
             const searchInput = document.getElementById('player-search-input');
             searchInput.addEventListener('input', updateSearchSuggestions);
             
-
-            searchInput.addEventListener('input', function() {
-                updateSearchSuggestions();
-                
-                // Limpar resultados se o campo estiver vazio
-                if (this.value.trim() === '') {
-                    document.getElementById('search-results').innerHTML = 
-                        '<div class="info-message">Search for a player to see results</div>';
-                    currentPlayerLeagues = [];
-                }
-            });
-
             // Evento para perder foco do input (esconde sugestões)
             searchInput.addEventListener('blur', () => {
                 setTimeout(() => {
@@ -935,6 +927,20 @@
             }
         }
 
+        // Logout Confirmation
+        document.getElementById('logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('logout-modal').style.display = 'flex';
+        });
+
+        document.getElementById('cancel-logout').addEventListener('click', function() {
+            document.getElementById('logout-modal').style.display = 'none';
+        });
+
+        document.getElementById('confirm-logout').addEventListener('click', function() {
+            window.location.href = '/logout';
+        });
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             // Carrega os anos disponíveis primeiro
@@ -949,30 +955,16 @@
                 }
             });
 
-            // Botão de reload
-            document.getElementById('reload-btn').addEventListener('click', loadPlayerStatus);
+            // Botão de reload (agora com forceRefresh=true)
+            document.getElementById('reload-btn').addEventListener('click', () => {
+                loadPlayerStatus(true); // Força atualização das ligas
+            });
             
             // Evento para abas
-            document.querySelector('[data-tab="status-player"]').addEventListener('click', loadPlayerStatus);
+            document.querySelector('[data-tab="status-player"]').addEventListener('click', () => {
+                loadPlayerStatus();
+            });
             document.querySelector('[data-tab="find-player"]').addEventListener('click', initFindForPlayerTab);
-            
-            // Inicializa a aba de busca se for a ativa
-            //if (document.querySelector('.tab-content.active').id === 'find-player') {
-            //    initFindForPlayerTab();
-            //}
-        });
-        // Logout Confirmation
-        document.getElementById('logout-link').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('logout-modal').style.display = 'flex';
-        });     
-
-        document.getElementById('cancel-logout').addEventListener('click', function() {
-            document.getElementById('logout-modal').style.display = 'none';
-        });     
-
-        document.getElementById('confirm-logout').addEventListener('click', function() {
-            window.location.href = '/logout';
         });
     </script>
 </body>
