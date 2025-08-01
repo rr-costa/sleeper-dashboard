@@ -7,6 +7,36 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         /* Estilos específicos para o dashboard */
+        /* Estilos para o modal de logout */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
         .league-card, .status-group {
             border-radius: 8px;
             overflow: hidden;
@@ -208,7 +238,7 @@
                 <select id="season-select">
                     <!-- As opções serão preenchidas via JavaScript -->
                 </select>
-            <a href="/logout" class="btn-secondary">Sign Out</a>
+            <a href="#" id="logout-link" class="btn-secondary">Sign Out</a>
         </div>
     </header>
 
@@ -275,6 +305,17 @@
             </section>
         </div>
     </main>
+    <!-- Modal de Confirmação de Logout -->
+    <div id="logout-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to sign out?</p>
+            <div class="modal-buttons">
+                <button id="cancel-logout" class="btn-secondary">Cancel</button>
+                <button id="confirm-logout" class="btn-primary">Yes</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Ordem de prioridade dos status
@@ -919,6 +960,19 @@
             //if (document.querySelector('.tab-content.active').id === 'find-player') {
             //    initFindForPlayerTab();
             //}
+        });
+        // Logout Confirmation
+        document.getElementById('logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('logout-modal').style.display = 'flex';
+        });     
+
+        document.getElementById('cancel-logout').addEventListener('click', function() {
+            document.getElementById('logout-modal').style.display = 'none';
+        });     
+
+        document.getElementById('confirm-logout').addEventListener('click', function() {
+            window.location.href = '/logout';
         });
     </script>
 </body>
