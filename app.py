@@ -478,7 +478,7 @@ def search_players():
             })
         
         results.sort(key=lambda x: x['name'])
-        return jsonify(results[:10])
+        return jsonify(results)
     
     except Exception as e:
         app.logger.error(f"Error in search_players: {str(e)}", exc_info=True)
