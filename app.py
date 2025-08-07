@@ -495,29 +495,40 @@ def available_years():
 @login_required
 def player_details():
     try:
+        # Obter parâmetros da requisição
         player_name = request.args.get('name', '').strip()
         season = request.args.get('season', CURRENT_SEASON, type=int)
         user_id = session['user_id']
         
+        # Validação básica
         if not player_name:
             return jsonify({'error': 'Player name is required'}), 400
         
+        # Buscar ligas e jogadores
         leagues = get_cached_leagues(user_id, season)
         all_players = get_all_players()
         
         if not leagues or not all_players:
             return jsonify({'error': 'No data available'}), 404
         
+        # Encontrar jogador pelo nome
         player_id = None
-        for pid, player in all_players.items():
-            if player.get('full_name', '').lower() == player_name.lower():
+        player_data = None
+        for pid, pdata in all_players.items():
+            if pdata.get('full_name', '').lower() == player_name.lower():
                 player_id = pid
+                player_data = pdata
                 break
         
-        if not player_id:
+        if not player_id or not player_data:
             return jsonify({'error': 'Player not found'}), 404
         
-        player_data = all_players.get(player_id, {})
+        # Processar status do jogador
+        natural_position = player_data.get('position', '?')
+        natural_status = player_data.get('injury_status') or player_data.get('status', 'Active')
+        status_abbr = STATUS_CONFIG.get(natural_status, {}).get('abbr', natural_status[:2].upper())
+        
+        # Buscar em todas as ligas do usuário
         leagues_with_player = []
         
         for league in leagues:
@@ -526,25 +537,38 @@ def player_details():
             user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
             
             for roster in user_rosters:
-                players_list = roster.get('players') or []
+                players_list = roster.get('players', [])
                 
                 if player_id in players_list:
-                    position = player_data.get('position', '?')
-                    status = player_data.get('injury_status', 'Active')
-                    status_abbr = STATUS_CONFIG.get(status, {}).get('abbr', '')
+                    # Determinar status do roster com base nas novas regras
+                    if player_id in roster.get('reserve', []):
+                        roster_position = "IR"  # Regra 1: Reserve = IR
+                    elif player_id in roster.get('starters', []):
+                        try:
+                            # Tentar obter posição exata
+                            idx = roster['starters'].index(player_id)
+                            roster_positions = get_league_settings(league_id).get('roster_positions', [])
+                            roster_position = roster_positions[idx] if idx < len(roster_positions) else "ST"
+                        except:
+                            roster_position = "ST"
+                    elif player_id in roster.get('taxi', []):
+                        roster_position = "TS"
+                    else:
+                        roster_position = "BN"  # Regra 2: Não está em starters/taxi/reserve
                     
                     leagues_with_player.append({
                         'league_id': league_id,
                         'league_name': league['name'],
-                        'position': position,
-                        'status': status,
-                        'status_abbr': status_abbr,
+                        'roster_position': roster_position,
                         'roster_id': roster.get('roster_id', 'unknown')
                     })
-                    break
+                    break  # Parar após encontrar em um roster
         
         return jsonify({
             'player_name': player_name,
+            'position': natural_position,
+            'status': natural_status,
+            'status_abbr': status_abbr,
             'leagues': leagues_with_player
         })
         

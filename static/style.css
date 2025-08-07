@@ -937,3 +937,66 @@ main {
     font-style: italic;
     color: #6c757d;
 }
+.player-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.player-position {
+    font-weight: bold;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+.player-search-section .search-results {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.player-search-section .top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 280px;
+    width: 100%;
+    max-width: 500px; /* Limite máximo de largura */
+}
+
+/* Remover margem do badge para melhor alinhamento */
+.player-search-section .badge {
+    margin-left: 0.5rem;
+}
+
+/* Ajustar layout da meta do jogador */
+.player-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+/* Adicione estas regras ao seu CSS existente */
+.player-search-section .league-item {
+    border-bottom: none !important; /* Remove a borda inferior */
+    padding: 0.5rem 0; /* Ajusta o espaçamento */
+}
+
+.player-search-section .player-leagues {
+    border-top: none !important; /* Remove a borda superior */
+    padding-top: 0; /* Remove o espaçamento superior */
+}
+
+/* Mantenha as outras regras de centralização */
+.player-search-section .search-results {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
+}

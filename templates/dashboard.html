@@ -663,7 +663,7 @@
                             ${player.leagues.slice(0, 3).map(league => `
                                 <div class="league-item">
                                     <span>${league.league_name}</span>
-                                    <span>${league.position}</span>
+                                    <span>${league.roster_position}</span>
                                     <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status}</span>
                                 </div>
                             `).join('')}
@@ -679,7 +679,7 @@
                         extraLeaguesEl.innerHTML = player.leagues.slice(3).map(league => `
                             <div class="league-item">
                                 <span>${league.league_name}</span>
-                                <span>${league.position}</span>
+                                <span>${league.roster_position}</span>
                                 <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status}</span>
                             </div>
                         `).join('');
@@ -774,48 +774,52 @@
         }
         
         // Função para renderizar o card do jogador
-        function renderPlayerCard(playerName, leagues) {
+        function renderPlayerCard(playerName, leagues, playerData) {
             const resultsContainer = document.getElementById('search-results');
-            
+            resultsContainer.innerHTML = '';
+
             const card = document.createElement('div');
             card.className = 'top-player-card';
-            
+
+            // Obter dados do jogador
+            const position = playerData.position || '?';
+            const injuryStatus = playerData.injury_status || 'Active';
+            const statusAbbr = playerData.status_abbr || injuryStatus.substring(0, 2).toUpperCase();
+            const statusClass = STATUS_CLASSES[injuryStatus] || '';
+
             card.innerHTML = `
                 <div class="player-header">
                     <h4>${playerName}</h4>
                     <span class="badge">${leagues.length} leagues</span>
                 </div>
-                <div class="player-status">Found in your leagues</div>
+                <div class="player-meta">
+                    <span class="player-position">${position}</span>
+                    <span class="status-tag ${statusClass}">${statusAbbr}</span>
+                </div>
                 <div class="player-leagues">
                     ${leagues.slice(0, 3).map(league => `
                         <div class="league-item">
                             <span>${league.league_name}</span>
-                            <span>${league.position}</span>
-                            <span class="status-tag ${STATUS_CLASSES[league.status] || ''}">
-                                ${league.status_abbr || league.status}
-                            </span>
+                            <span>${league.roster_position || 'BN'}</span>
                         </div>
                     `).join('')}
                 </div>
             `;
-            
+
             if (leagues.length > 3) {
                 const extraLeagues = document.createElement('div');
                 extraLeagues.className = 'extra-leagues';
                 extraLeagues.style.display = 'none';
-                
+
                 extraLeagues.innerHTML = leagues.slice(3).map(league => `
                     <div class="league-item">
                         <span>${league.league_name}</span>
-                        <span>${league.position}</span>
-                        <span class="status-tag ${STATUS_CLASSES[league.status] || ''}">
-                            ${league.status_abbr || league.status}
-                        </span>
+                        <span>${league.roster_position || 'BN'}</span>
                     </div>
                 `).join('');
-                
+
                 card.querySelector('.player-leagues').appendChild(extraLeagues);
-                
+
                 const moreButton = document.createElement('div');
                 moreButton.className = 'more-leagues';
                 moreButton.textContent = `+${leagues.length - 3} more`;
@@ -828,13 +832,13 @@
                         moreButton.textContent = `+${leagues.length - 3} more`;
                     }
                 });
-                
+
                 card.querySelector('.player-leagues').appendChild(moreButton);
             }
-            
-            resultsContainer.innerHTML = '';
+
             resultsContainer.appendChild(card);
         }
+
 
         // Atualize a função searchPlayer
         async function searchPlayer(player) {
@@ -864,8 +868,12 @@
                     return;
                 }
                 
-                // Renderizar usando o novo card
-                renderPlayerCard(data.player_name, data.leagues);
+                // Renderizar passando os dados adicionais do jogador
+                renderPlayerCard(data.player_name, data.leagues, {
+                    position: data.position,
+                    injury_status: data.injury_status,
+                    status_abbr: data.status_abbr
+                });
                 
             } catch (error) {
                 resultsContainer.innerHTML = `
