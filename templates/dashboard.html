@@ -280,103 +280,194 @@
                 max-width: 100%;
             }
         }
+        
+        /* === TELA DE LOADING INICIAL === */
+        .app-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        
+        .app-loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4a6cf7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <header>
-        <div class="header-left">
-            <div class="logo">
-                <img src="https://sleeper.com/images/logo-light.svg" alt="Sleeper Logo">
-            </div>
-            <h1>Sleeper Fantasy Dashboard</h1>
-        </div>
-        <div class="header-right">
-            <span class="username">{{ username }}</span>
-            <div class="season-selector">
-                <label for="season-select">Season:</label>
-                <select id="season-select">
-                    <!-- As opções serão preenchidas via JavaScript -->
-                </select>
-            <a href="#" id="logout-link" class="btn-secondary">Sign Out</a>
-        </div>
-    </header>
-
-    <nav class="tabs">
-        <button class="tab-btn active" data-tab="status-player">Status Player</button>
-        <button class="tab-btn" data-tab="find-player">Find for Player</button>
-    </nav>
-
-    <main>
-        <!-- Status Player Tab -->
-        <div id="status-player" class="tab-content active">
-            <div class="status-header">
-                <h2>Player Status</h2>
-                <button id="reload-btn" class="btn-primary">↻ Reload</button>
-            </div>
-            <p>List of your starting players with non-Active status</p>
-            
-            <div id="no-issues-message" class="no-issues" style="display: none;">
-                <div class="icon">🎉</div>
-                <h3>Your leagues are ready for this week!</h3>
-                <p>Enjoy the games!</p>
-            </div>
-            
-            <div id="leagues-container" class="leagues-container"></div>
-        </div>
-
-        <!-- Find for Player Tab -->
-        <div id="find-player" class="tab-content">
-            <div class="find-header">
-                <h2>Find for Player</h2>
-                <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
-            </div>
-            
-            <!-- Top 6 Players -->
-            <section class="top-players-section">
-                <h3>Your Top 6 Players</h3>
-                <div id="top-players-container" class="top-players">
-                    <div class="loading">Loading top players...</div>
+    <div id="app-loading" class="app-loading">
+        <div class="app-loading-spinner"></div>
+        <p>Loading Sleeper Dashboard...</p>
+    </div>
+    
+    <div id="app-content" style="display:none">
+        <header>
+            <div class="header-left">
+                <div class="logo">
+                    <img src="https://sleeper.com/images/logo-light.svg" alt="Sleeper Logo">
                 </div>
-            </section>
-            
-            <!-- Player Search -->
-            <section class="player-search-section">
-                <h3>Search Player</h3>
+                <h1>Sleeper Fantasy Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span class="username">{{ username }}</span>
+                <div class="season-selector">
+                    <label for="season-select">Season:</label>
+                    <select id="season-select">
+                        <!-- As opções serão preenchidas via JavaScript -->
+                    </select>
+                <a href="#" id="logout-link" class="btn-secondary">Sign Out</a>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="status-player">Status Player</button>
+            <button class="tab-btn" data-tab="find-player">Find for Player</button>
+        </nav>
+
+        <main>
+            <!-- Status Player Tab -->
+            <div id="status-player" class="tab-content active">
+                <div class="status-header">
+                    <h2>Player Status</h2>
+                    <button id="reload-btn" class="btn-primary">↻ Reload</button>
+                </div>
+                <p>List of your starting players with non-Active status</p>
                 
-                <!-- Position Filters -->
-                <div class="position-filters">
-                    <h4>Filter by Position:</h4>
-                    <div class="positions-grid" id="positions-container">
-                        <!-- Positions will be populated by JavaScript -->
+                <div id="no-issues-message" class="no-issues" style="display: none;">
+                    <div class="icon">🎉</div>
+                    <h3>Your leagues are ready for this week!</h3>
+                    <p>Enjoy the games!</p>
+                </div>
+                
+                <div id="leagues-container" class="leagues-container"></div>
+            </div>
+
+            <!-- Find for Player Tab -->
+            <div id="find-player" class="tab-content">
+                <div class="find-header">
+                    <h2>Find for Player</h2>
+                    <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
+                </div>
+                
+                <!-- Top 6 Players -->
+                <section class="top-players-section">
+                    <h3>Your Top 6 Players</h3>
+                    <div id="top-players-container" class="top-players">
+                        <div class="loading">Loading top players...</div>
                     </div>
-                </div>
+                </section>
                 
-                <!-- Search Box -->
-                <div class="search-box">
-                    <input type="text" id="player-search-input" placeholder="Enter player name (min 3 characters)">
-                    <div id="search-suggestions" class="suggestions"></div>
+                <!-- Player Search -->
+                <section class="player-search-section">
+                    <h3>Search Player</h3>
+                    
+                    <!-- Position Filters -->
+                    <div class="position-filters">
+                        <h4>Filter by Position:</h4>
+                        <div class="positions-grid" id="positions-container">
+                            <!-- Positions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Search Box -->
+                    <div class="search-box">
+                        <input type="text" id="player-search-input" placeholder="Enter player name (min 3 characters)">
+                        <div id="search-suggestions" class="suggestions"></div>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="search-results" class="search-results">
+                        <div class="info-message">Search for a player to see results</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+        <!-- Modal de Confirmação de Logout -->
+        <div id="logout-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>Confirm Logout</h3>
+                <p>Are you sure you want to sign out?</p>
+                <div class="modal-buttons">
+                    <button id="cancel-logout" class="btn-secondary">Cancel</button>
+                    <button id="confirm-logout" class="btn-primary">Yes</button>
                 </div>
-                
-                <!-- Search Results -->
-                <div id="search-results" class="search-results">
-                    <div class="info-message">Search for a player to see results</div>
-                </div>
-            </section>
-        </div>
-    </main>
-    <!-- Modal de Confirmação de Logout -->
-    <div id="logout-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h3>Confirm Logout</h3>
-            <p>Are you sure you want to sign out?</p>
-            <div class="modal-buttons">
-                <button id="cancel-logout" class="btn-secondary">Cancel</button>
-                <button id="confirm-logout" class="btn-primary">Yes</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ==================== COMPONENTE PLAYER CARD ====================
+        function createPlayerCardComponent(playerData) {
+            const { playerName, leagues, position, injuryStatus, statusAbbr } = playerData;
+            const statusClass = STATUS_CLASSES[injuryStatus] || '';
+
+            const card = document.createElement('div');
+            card.className = 'top-player-card';
+
+            card.innerHTML = `
+                <div class="player-header">
+                    <h4>${playerName}</h4>
+                    <span class="badge">${leagues.length} leagues</span>
+                </div>
+                <div class="player-status">
+                    <span class="player-position">${position || '?'}</span>
+                    <span class="status-tag ${statusClass}">${statusAbbr || 'A'}</span>
+                </div>
+                <div class="player-leagues">
+                    ${leagues.slice(0, 3).map(league => `
+                        <div class="league-item">
+                            <span>${league.league_name}</span>
+                            <span>${league.roster_position || league.position || 'BN'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            if (leagues.length > 3) {
+                const extraLeagues = document.createElement('div');
+                extraLeagues.className = 'extra-leagues';
+                extraLeagues.style.display = 'none';
+
+                extraLeagues.innerHTML = leagues.slice(3).map(league => `
+                    <div class="league-item">
+                        <span>${league.league_name}</span>
+                        <span>${league.roster_position || league.position || 'BN'}</span>
+                    </div>
+                `).join('');
+
+                card.querySelector('.player-leagues').appendChild(extraLeagues);
+
+                const moreButton = document.createElement('div');
+                moreButton.className = 'more-leagues';
+                moreButton.textContent = `+${leagues.length - 3} more`;
+                moreButton.addEventListener('click', function() {
+                    if (extraLeagues.style.display === 'none') {
+                        extraLeagues.style.display = 'block';
+                        moreButton.textContent = '- show less';
+                    } else {
+                        extraLeagues.style.display = 'none';
+                        moreButton.textContent = `+${leagues.length - 3} more`;
+                    }
+                });
+
+                card.querySelector('.player-leagues').appendChild(moreButton);
+            }
+
+            return card;
+        }
+
         // Ordem de prioridade dos status
         const STATUS_ORDER = {
             'PUP': 0,
@@ -388,11 +479,6 @@
             'Probable': 6
         };
         
-        // Estado de expansão das ligas e status
-        let expandedState = {};
-        // Variável global para armazenar o ano selecionado
-        let currentSeason = new Date().getFullYear();
-
         // Array de posições na ordem especificada
         const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DST', 'DL', 'LB', 'DB'];
         
@@ -407,28 +493,46 @@
             'PUP': 'pup'
         };
 
+        // Estado centralizado da aplicação
+        const appState = {
+            currentSeason: new Date().getFullYear(),
+            expandedState: {}
+        };
+
+        // Função debounce para otimizar buscas
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
         // Implementação das abas
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove a classe active de todas as abas e botões
-                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                
-                // Adiciona a classe active ao botão clicado
-                button.classList.add('active');
-                
-                // Mostra o conteúdo correspondente
-                const tabId = button.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-                
-                // Se for a aba de busca, inicializa os componentes
-                if (tabId === 'find-player') {
-                    initFindForPlayerTab();
-                }
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove a classe active de todas as abas e botões
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    
+                    // Adiciona a classe active ao botão clicado
+                    button.classList.add('active');
+                    
+                    // Mostra o conteúdo correspondente
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // Se for a aba de busca, inicializa os componentes
+                    if (tabId === 'find-player') {
+                        initFindForPlayerTab();
+                    }
+                });
             });
-        });
+        }
         
-        // Carrega dados de status (com suporte a forceRefresh)
+        // Carrega dados de status
         async function loadPlayerStatus(forceRefresh = false) {
             const container = document.getElementById('leagues-container');
             const noIssues = document.getElementById('no-issues-message');
@@ -439,9 +543,8 @@
             container.innerHTML = '<div class="loading">Loading player status...</div>';
             
             try {
-                const params = new URLSearchParams({ season: currentSeason });
+                const params = new URLSearchParams({ season: appState.currentSeason });
                 
-                // Seleciona endpoint com base no refresh
                 const endpoint = forceRefresh 
                     ? `/api/refresh-league-status?${params}` 
                     : `/api/player-status?${params}`;
@@ -454,22 +557,16 @@
                 
                 const leagues = await response.json();
                 
-                // Esconde a mensagem de "sem problemas" se houver ligas com problemas
                 noIssues.style.display = Object.keys(leagues).length === 0 ? 'block' : 'none';
-                
-                // Limpa o container
                 container.innerHTML = '';
                 
-                // Processa cada liga
                 for (const [leagueId, league] of Object.entries(leagues)) {
-                    // Ordena os grupos de status pela ordem definida
                     league.issues.sort((a, b) => {
                         const orderA = STATUS_ORDER[a.status] || 99;
                         const orderB = STATUS_ORDER[b.status] || 99;
                         return orderA - orderB;
                     });
                     
-                    // Cria o elemento da liga
                     const leagueEl = createLeagueElement(leagueId, league);
                     container.appendChild(leagueEl);
                 }
@@ -493,8 +590,7 @@
             leagueEl.className = 'league-card';
             leagueEl.dataset.leagueId = leagueId;
             
-            // Verifica se a liga está expandida
-            const isExpanded = expandedState[leagueId]?.expanded || false;
+            const isExpanded = appState.expandedState[leagueId]?.expanded || false;
             
             leagueEl.innerHTML = `
                 <div class="league-header" data-expanded="${isExpanded}">
@@ -509,15 +605,13 @@
                 </div>
             `;
             
-            // Adiciona evento de toggle para a liga
             leagueEl.querySelector('.league-header').addEventListener('click', () => {
                 toggleLeague(leagueId, leagueEl);
             });
             
-            // Adiciona evento de toggle para os grupos de status
             leagueEl.querySelectorAll('.group-header').forEach(header => {
                 header.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Impede que o evento propague para a liga
+                    e.stopPropagation();
                     toggleStatusGroup(leagueId, header);
                 });
             });
@@ -528,7 +622,7 @@
         // Renderiza grupos de status
         function renderStatusGroups(leagueId, issues) {
             return issues.map(issue => {
-                const isExpanded = expandedState[leagueId]?.statuses?.[issue.status] || false;
+                const isExpanded = appState.expandedState[leagueId]?.statuses?.[issue.status] || false;
                 
                 return `
                     <div class="status-group">
@@ -553,12 +647,10 @@
             const isExpanded = groupHeader.dataset.expanded === 'true';
             const status = groupHeader.dataset.status;
             
-            // Atualiza estado
-            expandedState[leagueId] = expandedState[leagueId] || {};
-            expandedState[leagueId].statuses = expandedState[leagueId].statuses || {};
-            expandedState[leagueId].statuses[status] = !isExpanded;
+            appState.expandedState[leagueId] = appState.expandedState[leagueId] || {};
+            appState.expandedState[leagueId].statuses = appState.expandedState[leagueId].statuses || {};
+            appState.expandedState[leagueId].statuses[status] = !isExpanded;
             
-            // Atualiza UI
             groupHeader.dataset.expanded = !isExpanded;
             content.style.display = !isExpanded ? 'block' : 'none';
             groupHeader.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
@@ -597,11 +689,9 @@
             const content = leagueEl.querySelector('.league-content');
             const isExpanded = header.dataset.expanded === 'true';
             
-            // Atualiza estado
-            expandedState[leagueId] = expandedState[leagueId] || {};
-            expandedState[leagueId].expanded = !isExpanded;
+            appState.expandedState[leagueId] = appState.expandedState[leagueId] || {};
+            appState.expandedState[leagueId].expanded = !isExpanded;
             
-            // Atualiza UI
             header.dataset.expanded = !isExpanded;
             content.style.display = !isExpanded ? 'block' : 'none';
             header.querySelector('.toggle-icon').textContent = !isExpanded ? '▲' : '▼';
@@ -622,17 +712,16 @@
                 container.appendChild(label);
             });
             
-            // Adiciona evento para atualizar sugestões quando os filtros mudarem
             container.addEventListener('change', updateSearchSuggestions);
         }
         
-        // Carrega os top 5 jogadores
+        // Carrega os top 6 jogadores usando o componente
         async function loadTopPlayers() {
             const container = document.getElementById('top-players-container');
             container.innerHTML = '<div class="loading">Loading your top players...</div>';
 
             try {
-                const params = new URLSearchParams({ season: currentSeason });
+                const params = new URLSearchParams({ season: appState.currentSeason });
                 const response = await fetch(`/api/top-players?${params}`);
                 
                 if (!response.ok) {
@@ -647,58 +736,18 @@
                 }
                 
                 container.innerHTML = '';
-                players.forEach(player => {
-                    const playerEl = document.createElement('div');
-                    playerEl.className = 'top-player-card';
-                    playerEl.dataset.playerId = player.name; // Usando nome como ID para simplificar
-                    
-                    // Mantenha as 3 primeiras ligas visíveis
-                    playerEl.innerHTML = `
-                        <div class="player-header">
-                            <h4>${player.name}</h4>
-                            <span class="badge">${player.count} leagues</span>
-                        </div>
-                        <div class="player-status">Status: ${player.status}</div>
-                        <div class="player-leagues">
-                            ${player.leagues.slice(0, 3).map(league => `
-                                <div class="league-item">
-                                    <span>${league.league_name}</span>
-                                    <span>${league.roster_position}</span>
-                                    <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    
-                    // Adicione ligas extras (se houver) em um container oculto
-                    if (player.leagues.length > 3) {
-                        const extraLeaguesEl = document.createElement('div');
-                        extraLeaguesEl.className = 'extra-leagues';
-                        extraLeaguesEl.style.display = 'none'; // Inicialmente oculto
-                        
-                        extraLeaguesEl.innerHTML = player.leagues.slice(3).map(league => `
-                            <div class="league-item">
-                                <span>${league.league_name}</span>
-                                <span>${league.roster_position}</span>
-                                <span class="status-tag ${STATUS_CLASSES[player.status] || ''}">${player.status}</span>
-                            </div>
-                        `).join('');
-                        
-                        playerEl.querySelector('.player-leagues').appendChild(extraLeaguesEl);
-                        
-                        // Adicione o botão "more" com funcionalidade
-                        const moreButton = document.createElement('div');
-                        moreButton.className = 'more-leagues';
-                        moreButton.innerHTML = `+${player.leagues.length - 3} more`;
-                        moreButton.addEventListener('click', function() {
-                            toggleExtraLeagues(playerEl);
-                        });
-                        
-                        playerEl.querySelector('.player-leagues').appendChild(moreButton);
-                    }
-                    
-                    container.appendChild(playerEl);
-                });
+                
+                for (const player of players) {
+                    // USANDO O COMPONENTE PARA TOP PLAYERS
+                    const card = createPlayerCardComponent({
+                        playerName: player.name,
+                        leagues: player.leagues,
+                        position: player.position,
+                        injuryStatus: player.injury_status,
+                        statusAbbr: player.status_abbr
+                    });
+                    container.appendChild(card);
+                }
                 
             } catch (error) {
                 container.innerHTML = `
@@ -710,7 +759,7 @@
         }
 
         // Atualiza sugestões de busca
-        async function updateSearchSuggestions() {
+        const updateSearchSuggestions = debounce(async function() {
             const input = document.getElementById('player-search-input');
             const query = input.value.trim();
             const suggestions = document.getElementById('search-suggestions');
@@ -728,7 +777,7 @@
                 
                 const params = new URLSearchParams();
                 params.append('query', query);
-                params.append('season', currentSeason);
+                params.append('season', appState.currentSeason);
                 selectedPositions.forEach(pos => params.append('positions', pos));
                 
                 const response = await fetch(`/api/search-players?${params}`);
@@ -771,76 +820,9 @@
                 suggestions.innerHTML = '<div class="no-results">Search temporarily unavailable</div>';
                 suggestions.style.display = 'block';
             }
-        }
-        
-        // Função para renderizar o card do jogador
-        function renderPlayerCard(playerName, leagues, playerData) {
-            const resultsContainer = document.getElementById('search-results');
-            resultsContainer.innerHTML = '';
+        }, 300);
 
-            const card = document.createElement('div');
-            card.className = 'top-player-card';
-
-            // Obter dados do jogador
-            const position = playerData.position || '?';
-            const injuryStatus = playerData.injury_status || 'Active';
-            const statusAbbr = playerData.status_abbr || injuryStatus.substring(0, 2).toUpperCase();
-            const statusClass = STATUS_CLASSES[injuryStatus] || '';
-
-            card.innerHTML = `
-                <div class="player-header">
-                    <h4>${playerName}</h4>
-                    <span class="badge">${leagues.length} leagues</span>
-                </div>
-                <div class="player-meta">
-                    <span class="player-position">${position}</span>
-                    <span class="status-tag ${statusClass}">${statusAbbr}</span>
-                </div>
-                <div class="player-leagues">
-                    ${leagues.slice(0, 3).map(league => `
-                        <div class="league-item">
-                            <span>${league.league_name}</span>
-                            <span>${league.roster_position || 'BN'}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-
-            if (leagues.length > 3) {
-                const extraLeagues = document.createElement('div');
-                extraLeagues.className = 'extra-leagues';
-                extraLeagues.style.display = 'none';
-
-                extraLeagues.innerHTML = leagues.slice(3).map(league => `
-                    <div class="league-item">
-                        <span>${league.league_name}</span>
-                        <span>${league.roster_position || 'BN'}</span>
-                    </div>
-                `).join('');
-
-                card.querySelector('.player-leagues').appendChild(extraLeagues);
-
-                const moreButton = document.createElement('div');
-                moreButton.className = 'more-leagues';
-                moreButton.textContent = `+${leagues.length - 3} more`;
-                moreButton.addEventListener('click', function() {
-                    if (extraLeagues.style.display === 'none') {
-                        extraLeagues.style.display = 'block';
-                        moreButton.textContent = '- show less';
-                    } else {
-                        extraLeagues.style.display = 'none';
-                        moreButton.textContent = `+${leagues.length - 3} more`;
-                    }
-                });
-
-                card.querySelector('.player-leagues').appendChild(moreButton);
-            }
-
-            resultsContainer.appendChild(card);
-        }
-
-
-        // Atualize a função searchPlayer
+        // Busca detalhes de um jogador usando o componente
         async function searchPlayer(player) {
             const resultsContainer = document.getElementById('search-results');
             resultsContainer.innerHTML = '<div class="loading">Searching player...</div>';
@@ -848,7 +830,7 @@
             try {
                 const params = new URLSearchParams({
                     name: player.name,
-                    season: currentSeason
+                    season: appState.currentSeason
                 });
                 
                 const response = await fetch(`/api/player-details?${params}`);
@@ -868,12 +850,17 @@
                     return;
                 }
                 
-                // Renderizar passando os dados adicionais do jogador
-                renderPlayerCard(data.player_name, data.leagues, {
+                // USANDO O COMPONENTE PARA RESULTADOS DE BUSCA
+                const card = createPlayerCardComponent({
+                    playerName: data.player_name,
+                    leagues: data.leagues,
                     position: data.position,
-                    injury_status: data.injury_status,
-                    status_abbr: data.status_abbr
+                    injuryStatus: data.injury_status,
+                    statusAbbr: data.status_abbr
                 });
+                
+                resultsContainer.innerHTML = '';
+                resultsContainer.appendChild(card);
                 
             } catch (error) {
                 resultsContainer.innerHTML = `
@@ -884,6 +871,7 @@
             }
         }
         
+        // Carrega anos disponíveis
         async function loadAvailableYears() {
             try {
                 const response = await fetch('/api/available-years');
@@ -894,43 +882,38 @@
                 const years = await response.json();
                 const seasonSelect = document.getElementById('season-select');
                 
-                // Ordenar anos em ordem decrescente
                 years.sort((a, b) => b - a);
-
-                // Limpa opções existentes
                 seasonSelect.innerHTML = '';
 
-                // Preencher o seletor
                 years.forEach(year => {
                     const option = document.createElement('option');
                     option.value = year;
                     option.textContent = year;
                     seasonSelect.appendChild(option);
                 });
-                // Define o ano atual como padrão
+                
                 const currentYear = new Date().getFullYear();
                 seasonSelect.value = years.includes(currentYear) ? currentYear : years[0];
-                currentSeason = parseInt(seasonSelect.value);
+                appState.currentSeason = parseInt(seasonSelect.value);
 
-                // Adicionar evento de mudança
                 seasonSelect.addEventListener('change', () => {
-                    currentSeason = parseInt(seasonSelect.value);
+                    appState.currentSeason = parseInt(seasonSelect.value);
                     reloadCurrentTab();
                 });
                 
             } catch (error) {
                 console.error('Error loading years:', error);
-                // Fallback caso ocorra erro
                 const seasonSelect = document.getElementById('season-select');
                 seasonSelect.innerHTML = `
                     <option value="${new Date().getFullYear()}">
                         ${new Date().getFullYear()}
                     </option>
                 `;
+                appState.currentSeason = new Date().getFullYear();
             }
         }
 
-        // Função para recarregar a aba atual
+        // Recarrega a aba atual
         function reloadCurrentTab() {
             const activeTab = document.querySelector('.tab-content.active').id;
             
@@ -946,11 +929,9 @@
             loadTopPlayers();
             initPositionFilters();
 
-            // Evento para input de busca
             const searchInput = document.getElementById('player-search-input');
             searchInput.addEventListener('input', updateSearchSuggestions);
             
-            // Evento para perder foco do input (esconde sugestões)
             searchInput.addEventListener('blur', () => {
                 setTimeout(() => {
                     const suggestions = document.getElementById('search-suggestions');
@@ -958,65 +939,69 @@
                 }, 200);
             });
             
-            // Botão de refresh
             document.getElementById('refresh-find-btn').addEventListener('click', () => {
                 loadTopPlayers();
             });
         }
         
-        function toggleExtraLeagues(playerEl) {
-            const extraLeagues = playerEl.querySelector('.extra-leagues');
-            const moreButton = playerEl.querySelector('.more-leagues');
-            
-            if (extraLeagues.style.display === 'none') {
-                extraLeagues.style.display = 'block';
-                moreButton.innerHTML = '- show less';
-            } else {
-                extraLeagues.style.display = 'none';
-                moreButton.innerHTML = `+${playerEl.querySelectorAll('.extra-leagues .league-item').length} more`;
-            }
+        // Logout Confirmation
+        function setupLogout() {
+            document.getElementById('logout-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('logout-modal').style.display = 'flex';
+            });
+
+            document.getElementById('cancel-logout').addEventListener('click', function() {
+                document.getElementById('logout-modal').style.display = 'none';
+            });
+
+            document.getElementById('confirm-logout').addEventListener('click', function() {
+                window.location.href = '/logout';
+            });
         }
 
-        // Logout Confirmation
-        document.getElementById('logout-link').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('logout-modal').style.display = 'flex';
-        });
-
-        document.getElementById('cancel-logout').addEventListener('click', function() {
-            document.getElementById('logout-modal').style.display = 'none';
-        });
-
-        document.getElementById('confirm-logout').addEventListener('click', function() {
-            window.location.href = '/logout';
-        });
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            // Carrega os anos disponíveis primeiro
-            loadAvailableYears().then(() => {
-                // Inicializa a aba ativa após carregar os anos
+        // Inicialização corrigida
+        async function initializeApp() {
+            try {
+                // Primeiro carrega os anos disponíveis
+                await loadAvailableYears();
+                
+                // Configura componentes básicos
+                setupTabs();
+                setupLogout();
+                
+                // Determina qual aba iniciar
                 const activeTab = document.querySelector('.tab-content.active').id;
                 
                 if (activeTab === 'status-player') {
-                    loadPlayerStatus();
+                    await loadPlayerStatus();
                 } else if (activeTab === 'find-player') {
                     initFindForPlayerTab();
                 }
-            });
+                
+                // Botão de reload
+                document.getElementById('reload-btn').addEventListener('click', () => {
+                    loadPlayerStatus(true);
+                });
+                
+                // Mostra a aplicação
+                document.getElementById('app-loading').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('app-loading').innerHTML = `
+                    <div class="error">
+                        <h3>Initialization Error</h3>
+                        <p>${error.message}</p>
+                        <button class="btn-primary" onclick="location.reload()">Reload Page</button>
+                    </div>
+                `;
+            }
+        }
 
-            // Botão de reload (agora com forceRefresh=true)
-            document.getElementById('reload-btn').addEventListener('click', () => {
-                loadPlayerStatus(true); // Força atualização das ligas
-            });
-            
-            // Evento para abas
-            document.querySelector('[data-tab="status-player"]').addEventListener('click', () => {
-                loadPlayerStatus();
-            });
-            document.querySelector('[data-tab="find-player"]').addEventListener('click', initFindForPlayerTab);
-        });
-
+        // Inicia a aplicação quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>

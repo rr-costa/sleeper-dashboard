@@ -1000,3 +1000,112 @@ main {
     width: 100%;
     margin-top: 1rem;
 }
+/* Estilo atualizado para os cards dos Top Players */
+.top-players-section .top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.top-players-section .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.top-players-section .player-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.top-players-section .player-position {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.top-players-section .player-leagues {
+    border-top: 1px solid #eee;
+    padding-top: 0.5rem;
+}
+
+.top-players-section .league-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.top-players-section .league-item:last-child {
+    border-bottom: none;
+}
+
+/* Layout responsivo */
+@media (max-width: 768px) {
+    .top-players-section .top-player-card {
+        padding: 1rem;
+    }
+}
+/* Estilo unificado para os cards */
+.top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.top-player-card .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.top-player-card .player-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.top-player-card .player-position {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.top-player-card .player-leagues {
+    border-top: 1px solid #eee;
+    padding-top: 0.5rem;
+}
+
+.top-player-card .league-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.top-player-card .league-item:last-child {
+    border-bottom: none;
+}
+
+.top-player-card .more-leagues {
+    color: #4a6cf7;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    font-weight: bold;
+}
+
+/* Layout responsivo */
+@media (max-width: 768px) {
+    .top-player-card {
+        padding: 1rem;
+    }
+}
