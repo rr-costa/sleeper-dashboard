@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from dotenv import load_dotenv
+from cachetools import TTLCache
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 
@@ -19,19 +21,11 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=1),
     SESSION_REFRESH_EACH_REQUEST=True
 )
-#LOG
-if os.getenv('FLASK_ENV') == 'development':
-    app.logger.setLevel(logging.INFO)
-    logging.getLogger().setLevel(logging.INFO)
-else:
-    app.logger.setLevel(logging.WARNING)
-    logging.getLogger().setLevel(logging.WARNING)
 
 # Configurações
 SPORT = 'nfl'
 CURRENT_SEASON = datetime.now().year
-season = CURRENT_SEASON  # Temporada atual, pode ser alterada dinamicamente
-TOPN = 6  # Número de jogadores a serem retornados nas listas
+TOPN = 6
 
 # Configuração unificada de status
 STATUS_CONFIG = {
@@ -47,16 +41,9 @@ STATUS_CONFIG = {
 # Ordem das posições para exibição
 POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DST', 'DL', 'LB', 'DB']
 
-# Cache de jogadores
-PLAYERS_CACHE = {
-    'data': None,
-    'timestamp': None,
-    'expiry': 600  # 10 minutos em segundos
-}
-
-# Cache de ligas e rosters (5 minutos)
-LEAGUE_CACHE = {}
-LEAGUE_CACHE_EXPIRY = 300  # 5 minutos em segundos
+# Caches com TTLCache
+PLAYERS_CACHE = TTLCache(maxsize=1, ttl=600)  # 10 minutos
+LEAGUE_CACHE = TTLCache(maxsize=100, ttl=300)  # 5 minutos
 
 # ==================== FUNÇÕES AUXILIARES ====================
 def sleeper_request(url, timeout=10):
@@ -72,94 +59,64 @@ def sleeper_request(url, timeout=10):
         return None
 
 def get_all_players():
-    """Obtém todos os jogadores ativos da NFL com cache de 10 minutos"""
-    current_time = datetime.now()
-    
-    # Verifica se o cache é válido
-    if PLAYERS_CACHE['data'] is not None:
-        age = (current_time - PLAYERS_CACHE['timestamp']).total_seconds()
-        if age < PLAYERS_CACHE['expiry']:
-            return PLAYERS_CACHE['data']
-    
+    """Obtém todos os jogadores ativos da NFL com cache TTLCache"""
     try:
+        # Verifica se está no cache
+        if 'data' in PLAYERS_CACHE:
+            return PLAYERS_CACHE['data']
+        
         players = sleeper_request(f'https://api.sleeper.app/v1/players/{SPORT}', timeout=15)
         
         if not players:
             app.logger.warning("Resposta vazia da API de jogadores")
-            return PLAYERS_CACHE['data'] or {}
+            return {}
             
         active_players = {}
-        active_count = 0
-        inactive_reasons = {
-            'active_false': 0,
-            'status_inactive': 0,
-            'no_team': 0
-        }
-        
         for player_id, player_data in players.items():
-            if player_data.get('active') is not True:
-                inactive_reasons['active_false'] += 1
-                continue
-                
-            active_players[player_id] = player_data
-            active_count += 1
+            if player_data.get('active') is True:
+                active_players[player_id] = player_data
         
         PLAYERS_CACHE['data'] = active_players
-        PLAYERS_CACHE['timestamp'] = current_time
-        
         return active_players
         
     except Exception as e:
         app.logger.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
-        return PLAYERS_CACHE['data'] or {}
-
-def clear_league_cache():
-    """Limpa o cache de ligas e rosters"""
-    global LEAGUE_CACHE
-    LEAGUE_CACHE = {}
+        return {}
 
 def get_cached_leagues(user_id, season):
-    """Obtém ligas com cache"""
-    cache_key = f"leagues-{user_id}-{season}"
-    current_time = datetime.now()
-    
+    """Obtém ligas com cache TTLCache"""
+    cache_key = (user_id, season)
     if cache_key in LEAGUE_CACHE:
-        cache_age = (current_time - LEAGUE_CACHE[cache_key]['timestamp']).total_seconds()
-        if cache_age < LEAGUE_CACHE_EXPIRY:
-            return LEAGUE_CACHE[cache_key]['data']
+        return LEAGUE_CACHE[cache_key]
     
     leagues = sleeper_request(f'https://api.sleeper.app/v1/user/{user_id}/leagues/nfl/{season}', timeout=10) or []
-    LEAGUE_CACHE[cache_key] = {
-        'data': leagues,
-        'timestamp': current_time
-    }
+    LEAGUE_CACHE[cache_key] = leagues
     return leagues
 
 def get_cached_rosters(league_id):
-    """Obtém rosters com cache"""
-    cache_key = f"rosters-{league_id}"
-    current_time = datetime.now()
-    
-    if cache_key in LEAGUE_CACHE:
-        cache_age = (current_time - LEAGUE_CACHE[cache_key]['timestamp']).total_seconds()
-        if cache_age < LEAGUE_CACHE_EXPIRY:
-            return LEAGUE_CACHE[cache_key]['data']
+    """Obtém rosters com cache TTLCache"""
+    if league_id in LEAGUE_CACHE:
+        return LEAGUE_CACHE[league_id]
     
     rosters = sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}/rosters') or []
-    LEAGUE_CACHE[cache_key] = {
-        'data': rosters,
-        'timestamp': current_time
-    }
+    LEAGUE_CACHE[league_id] = rosters
     return rosters
+
+def get_league_settings(league_id):
+    """Obtém as configurações da liga usando cache"""
+    cache_key = f"settings_{league_id}"
+    if cache_key in LEAGUE_CACHE:
+        return LEAGUE_CACHE[cache_key]
+    
+    settings = sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}')
+    if settings:
+        LEAGUE_CACHE[cache_key] = settings
+    return settings
 
 def get_user_id(username):
     """Obtém o ID do usuário pelo username do Sleeper"""
     user_data = sleeper_request(f'https://api.sleeper.app/v1/user/{username}', timeout=5)
     return user_data.get('user_id') if user_data else None
-
-def get_league_settings(league_id):
-    """Obtém as configurações da liga incluindo as posições do roster"""
-    return sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}')
 
 # ==================== PROCESSAMENTO DE STATUS ====================
 def _process_empty_positions(starters, roster_positions):
@@ -172,22 +129,27 @@ def _process_empty_positions(starters, roster_positions):
     return empty
 
 def _process_player_status(player_id, all_players):
-    """Processa status de um jogador individual"""
+    """Processa status de um jogador individual com fallback para desconhecidos"""
     if not player_id or player_id in ['None', '0', '']:
         return None, None
     
     player = all_players.get(player_id)
     if not player:
-        app.logger.warning(f"Player not found: {player_id}")
-        return None, None
+        return {
+            'full_name': f'Unknown Player ({player_id})',
+            'position': '?',
+            'team': '?',
+            'injury_status': 'Unknown'
+        }, 'Unknown'
     
     status = player.get('injury_status', 'Active')
     return player, status if status != 'Active' else None
 
 def get_starters_with_status(user_id, season, force_refresh=False):
+    """Obtém starters com status usando paralelização"""
     try:
         if force_refresh:
-            clear_league_cache()
+            LEAGUE_CACHE.clear()
             
         leagues = get_cached_leagues(user_id, season)
         all_players = get_all_players()
@@ -195,17 +157,21 @@ def get_starters_with_status(user_id, season, force_refresh=False):
         
         for league in leagues:
             league_id = league['league_id']
-            league_settings = get_league_settings(league_id)
-            if not league_settings:
+            
+            # Paralelização: buscar configurações e rosters ao mesmo tempo
+            with ThreadPoolExecutor() as executor:
+                settings_future = executor.submit(get_league_settings, league_id)
+                rosters_future = executor.submit(get_cached_rosters, league_id)
+                league_settings = settings_future.result()
+                rosters = rosters_future.result()
+            
+            if not league_settings or not rosters:
                 continue
                 
             roster_positions = league_settings.get('roster_positions', [])
-            rosters = get_cached_rosters(league_id)
-            
             league_issues = []
             total_issues = 0
             
-            # Filtra apenas os rosters do usuário
             user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
             
             for roster in user_rosters:
@@ -232,9 +198,9 @@ def get_starters_with_status(user_id, season, force_refresh=False):
                     
                     status_groups[status].append({
                         'id': player_id,
-                        'name': player.get('full_name', f'Unknown Player ({player_id})') if player else f'Unknown Player ({player_id})',
-                        'position': player.get('position', '?') if player else '?',
-                        'team': player.get('team', '?') if player else '?',
+                        'name': player.get('full_name', f'Unknown Player ({player_id})'),
+                        'position': player.get('position', '?'),
+                        'team': player.get('team', '?'),
                         'status': status
                     })
                 
@@ -271,6 +237,13 @@ def login_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+# Adicionar CSP headers para segurança
+@app.after_request
+def add_csp(response):
+    csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://sleeper.com;"
+    response.headers['Content-Security-Policy'] = csp
+    return response
 
 # ==================== ROTAS ====================
 @app.route('/login', methods=['POST'])
@@ -381,58 +354,93 @@ def top_players():
         user_id = session['user_id']
         season = request.args.get('season', CURRENT_SEASON, type=int)
         leagues = get_cached_leagues(user_id, season)
-        all_players = get_all_players()
+        all_players_data = get_all_players()
         
-        if not leagues or not all_players:
+        if not leagues or not all_players_data:
             return jsonify([])
         
-        player_counter = {}
-        player_leagues = {}
-        player_status = {}
+        player_map = {}
         
         for league in leagues:
             league_id = league['league_id']
-            rosters = get_cached_rosters(league_id)
+            rosters = get_cached_rosters(league_id) or []
             user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
             
             for roster in user_rosters:
-                players_list = roster.get('players', []) or []
+                # Garante que temos uma lista válida
+                players_list = roster.get('players') or []
+                
                 for player_id in players_list:
                     if not player_id:
                         continue
                     
-                    player = all_players.get(player_id, {})
-                    full_name = player.get('full_name', f'Player_{player_id[:TOPN]}')
+                    player_data = all_players_data.get(player_id, {})
+                    full_name = player_data.get('full_name', f'Player_{player_id[:6]}')
                     
-                    if full_name not in player_counter:
-                        player_counter[full_name] = 0
-                        player_status[full_name] = player.get('status', 'Active')
-                        player_leagues[full_name] = []
+                    # Se é a primeira vez, inicializa
+                    if player_id not in player_map:
+                        # Obter abreviatura de status
+                        injury_status = player_data.get('injury_status', 'Active')
+                        status_config = STATUS_CONFIG.get(injury_status, {})
+                        status_abbr = status_config.get('abbr', injury_status[:2].upper() if injury_status else 'A')
+                        
+                        player_map[player_id] = {
+                            'name': full_name,
+                            'count': 0,
+                            'leagues': [],
+                            'position': player_data.get('position', '?'),
+                            'injury_status': injury_status,
+                            'status_abbr': status_abbr
+                        }
                     
-                    player_counter[full_name] += 1
-                    player_leagues[full_name].append({
+                    # Incrementar contagem
+                    player_map[player_id]['count'] += 1
+                    
+                    # Adicionar detalhes da liga
+                    roster_position = get_roster_position(player_id, roster, league_id)
+                    player_map[player_id]['leagues'].append({
                         'league_name': league['name'],
                         'league_id': league_id,
                         'roster_id': roster.get('roster_id', 'unknown'),
-                        'position': player.get('position', '?')
+                        'roster_position': roster_position
                     })
         
-        if not player_counter:
+        if not player_map:
             return jsonify([])
         
-        sorted_players = sorted(player_counter.items(), key=lambda x: (-x[1], x[0]))
-        top_players = [{
-            'name': player,
-            'count': count,
-            'status': player_status[player],
-            'leagues': player_leagues[player]
-        } for player, count in sorted_players[:TOPN]]
+        # Converter para lista e ordenar
+        players_list = list(player_map.values())
+        players_list.sort(key=lambda x: (-x['count'], x['name']))
         
-        return jsonify(top_players)
+        # Retornar apenas os TOPN
+        return jsonify(players_list[:TOPN])
     
     except Exception as e:
         app.logger.error(f"Error in top_players: {str(e)}", exc_info=True)
         return jsonify([])
+
+# Função auxiliar para determinar a posição no roster (mantida igual)
+def get_roster_position(player_id, roster, league_id):
+    """Determina a posição do jogador no roster com base nas novas regras"""
+    # Trata campos que podem ser None
+    reserve = roster.get('reserve') or []
+    starters = roster.get('starters') or []
+    taxi = roster.get('taxi') or []
+    
+    if player_id in reserve:
+        return "IR"
+    elif player_id in starters:
+        try:
+            # Tentar obter posição exata
+            idx = starters.index(player_id)
+            roster_positions = get_league_settings(league_id).get('roster_positions', [])
+            return roster_positions[idx] if idx < len(roster_positions) else "ST"
+        except:
+            return "ST"
+    elif player_id in taxi:
+        return "TS"
+    else:
+        return "BN"
 
 @app.route('/api/search-players')
 @login_required
@@ -478,7 +486,7 @@ def search_players():
             })
         
         results.sort(key=lambda x: x['name'])
-        return jsonify(results[:10])
+        return jsonify(results)
     
     except Exception as e:
         app.logger.error(f"Error in search_players: {str(e)}", exc_info=True)
@@ -495,29 +503,39 @@ def available_years():
 @login_required
 def player_details():
     try:
+        # Obter parâmetros da requisição com validação reforçada
         player_name = request.args.get('name', '').strip()
+        if not player_name or len(player_name) < 2:
+            return jsonify({'error': 'Invalid player name'}), 400
+            
         season = request.args.get('season', CURRENT_SEASON, type=int)
         user_id = session['user_id']
         
-        if not player_name:
-            return jsonify({'error': 'Player name is required'}), 400
-        
+        # Buscar ligas e jogadores
         leagues = get_cached_leagues(user_id, season)
         all_players = get_all_players()
         
         if not leagues or not all_players:
             return jsonify({'error': 'No data available'}), 404
         
+        # Encontrar jogador pelo nome
         player_id = None
-        for pid, player in all_players.items():
-            if player.get('full_name', '').lower() == player_name.lower():
+        player_data = None
+        for pid, pdata in all_players.items():
+            if pdata.get('full_name', '').lower() == player_name.lower():
                 player_id = pid
+                player_data = pdata
                 break
         
-        if not player_id:
+        if not player_id or not player_data:
             return jsonify({'error': 'Player not found'}), 404
         
-        player_data = all_players.get(player_id, {})
+        # Processar status do jogador
+        natural_position = player_data.get('position', '?')
+        natural_status = player_data.get('injury_status') or player_data.get('status', 'Active')
+        status_abbr = STATUS_CONFIG.get(natural_status, {}).get('abbr', natural_status[:2].upper())
+        
+        # Buscar em todas as ligas do usuário
         leagues_with_player = []
         
         for league in leagues:
@@ -526,25 +544,38 @@ def player_details():
             user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
             
             for roster in user_rosters:
-                players_list = roster.get('players') or []
+                players_list = roster.get('players', [])
                 
                 if player_id in players_list:
-                    position = player_data.get('position', '?')
-                    status = player_data.get('injury_status', 'Active')
-                    status_abbr = STATUS_CONFIG.get(status, {}).get('abbr', '')
+                    # Determinar status do roster com base nas novas regras
+                    if player_id in roster.get('reserve', []):
+                        roster_position = "IR"  # Regra 1: Reserve = IR
+                    elif player_id in roster.get('starters', []):
+                        try:
+                            # Tentar obter posição exata
+                            idx = roster['starters'].index(player_id)
+                            roster_positions = get_league_settings(league_id).get('roster_positions', [])
+                            roster_position = roster_positions[idx] if idx < len(roster_positions) else "ST"
+                        except:
+                            roster_position = "ST"
+                    elif player_id in roster.get('taxi', []):
+                        roster_position = "TS"
+                    else:
+                        roster_position = "BN"  # Regra 2: Não está em starters/taxi/reserve
                     
                     leagues_with_player.append({
                         'league_id': league_id,
                         'league_name': league['name'],
-                        'position': position,
-                        'status': status,
-                        'status_abbr': status_abbr,
+                        'roster_position': roster_position,
                         'roster_id': roster.get('roster_id', 'unknown')
                     })
-                    break
+                    break  # Parar após encontrar em um roster
         
         return jsonify({
             'player_name': player_name,
+            'position': natural_position,
+            'status': natural_status,
+            'status_abbr': status_abbr,
             'leagues': leagues_with_player
         })
         
