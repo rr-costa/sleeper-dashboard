@@ -129,12 +129,14 @@ def _process_empty_positions(starters, roster_positions):
     return empty
 
 def _process_player_status(player_id, all_players):
-    """Processa status de um jogador individual com fallback para desconhecidos"""
+    """Processa status de um jogador individual com fallback robusto"""
+    # Caso 1: player_id inválido
     if not player_id or player_id in ['None', '0', '']:
         return None, None
     
+    # Caso 2: player não encontrado no dicionário
     player = all_players.get(player_id)
-    if not player:
+    if player is None:
         return {
             'full_name': f'Unknown Player ({player_id})',
             'position': '?',
@@ -142,8 +144,36 @@ def _process_player_status(player_id, all_players):
             'injury_status': 'Unknown'
         }, 'Unknown'
     
-    status = player.get('injury_status', 'Active')
-    return player, status if status != 'Active' else None
+    # Caso 3: player encontrado mas campos essenciais ausentes
+    try:
+        # Garante que temos valores padrão para todos os campos
+        full_name = player.get('full_name') or f'Player_{player_id[:6]}'
+        position = player.get('position') or '?'
+        team = player.get('team') or '?'
+        injury_status = player.get('injury_status') or player.get('status') or 'Active'
+        
+        # Prepara objeto player seguro
+        safe_player = {
+            'full_name': full_name,
+            'position': position,
+            'team': team,
+            'injury_status': injury_status
+        }
+        
+        # Determina status apenas se não for 'Active'
+        status = injury_status if injury_status != 'Active' else None
+        
+        return safe_player, status
+        
+    except Exception as e:
+        # Fallback completo em caso de erro inesperado
+        app.logger.warning(f"Error processing player {player_id}: {str(e)}")
+        return {
+            'full_name': f'Player_{player_id[:6]}',
+            'position': '?',
+            'team': '?',
+            'injury_status': 'Unknown'
+        }, 'Unknown'
 
 def get_starters_with_status(user_id, season, force_refresh=False):
     """Obtém starters com status usando paralelização"""
@@ -353,8 +383,8 @@ def top_players():
     try:
         user_id = session['user_id']
         season = request.args.get('season', CURRENT_SEASON, type=int)
-        leagues = get_cached_leagues(user_id, season)
-        all_players_data = get_all_players()
+        leagues = get_cached_leagues(user_id, season) or []
+        all_players_data = get_all_players() or {}
         
         if not leagues or not all_players_data:
             return jsonify([])
@@ -362,44 +392,56 @@ def top_players():
         player_map = {}
         
         for league in leagues:
+            if not league or 'league_id' not in league:
+                continue
+                
             league_id = league['league_id']
             rosters = get_cached_rosters(league_id) or []
-            user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
+            
+            # Filtra rosters válidos do usuário
+            user_rosters = [
+                r for r in rosters 
+                if r and isinstance(r, dict) and r.get('owner_id') == user_id
+            ]
             
             for roster in user_rosters:
-                # Garante que temos uma lista válida
                 players_list = roster.get('players') or []
                 
                 for player_id in players_list:
-                    if not player_id:
+                    if not player_id or player_id in ['', '0', 'None']:
                         continue
                     
+                    # Obter dados do jogador com fallbacks
                     player_data = all_players_data.get(player_id, {})
-                    full_name = player_data.get('full_name', f'Player_{player_id[:6]}')
+                    full_name = player_data.get('full_name') or f'Player_{player_id[:6]}'
                     
-                    # Se é a primeira vez, inicializa
+                    # Se é a primeira vez que vemos este player_id
                     if player_id not in player_map:
-                        # Obter abreviatura de status
-                        injury_status = player_data.get('injury_status', 'Active')
-                        status_config = STATUS_CONFIG.get(injury_status, {})
-                        status_abbr = status_config.get('abbr', injury_status[:2].upper() if injury_status else 'A')
+                        # Obter status com valor padrão
+                        injury_status = player_data.get('injury_status') or 'Active'
+                        injury_status = format_status(injury_status)
                         
                         player_map[player_id] = {
                             'name': full_name,
                             'count': 0,
                             'leagues': [],
                             'position': player_data.get('position', '?'),
-                            'injury_status': injury_status,
-                            'status_abbr': status_abbr
+                            'injury_status': injury_status
                         }
                     
-                    # Incrementar contagem
+                    # Incrementar contagem de ocorrências
                     player_map[player_id]['count'] += 1
                     
+                    # Obter posição no roster
+                    try:
+                        roster_position = get_roster_position(player_id, roster, league_id)
+                    except Exception as e:
+                        app.logger.warning(f"Error getting roster position for {player_id}: {str(e)}")
+                        roster_position = "BN"
+                    
                     # Adicionar detalhes da liga
-                    roster_position = get_roster_position(player_id, roster, league_id)
                     player_map[player_id]['leagues'].append({
-                        'league_name': league['name'],
+                        'league_name': league.get('name', 'Unknown League'),
                         'league_id': league_id,
                         'roster_id': roster.get('roster_id', 'unknown'),
                         'roster_position': roster_position
@@ -499,11 +541,38 @@ def available_years():
     years = list(range(2023, current_year + 1))
     return jsonify(years)
 
+def format_status(status):
+    """Formata o status para um padrão consistente: primeira letra maiúscula, resto minúscula"""
+    if not status:
+        return 'Active'
+    
+    status = status.strip()
+    status_lower = status.lower()
+    
+    # Mapeia siglas para nomes completos
+    status_map = {
+        'pup': 'PUP',
+        'ir': 'IR',
+        's': 'Suspended',
+        'o': 'Out',
+        'd': 'Doubtful',
+        'q': 'Questionable',
+        'p': 'Probable',
+        'active': 'Active'
+    }
+    
+    # Verifica se é uma sigla conhecida
+    if status_lower in status_map:
+        return status_map[status_lower]
+    
+    # Capitaliza palavras completas
+    return status.capitalize()
+
 @app.route('/api/player-details')
 @login_required
 def player_details():
     try:
-        # Obter parâmetros da requisição com validação reforçada
+        # Obter parâmetros com validação reforçada
         player_name = request.args.get('name', '').strip()
         if not player_name or len(player_name) < 2:
             return jsonify({'error': 'Invalid player name'}), 400
@@ -511,18 +580,23 @@ def player_details():
         season = request.args.get('season', CURRENT_SEASON, type=int)
         user_id = session['user_id']
         
-        # Buscar ligas e jogadores
-        leagues = get_cached_leagues(user_id, season)
-        all_players = get_all_players()
+        # Buscar ligas e jogadores com tratamento de null
+        leagues = get_cached_leagues(user_id, season) or []
+        all_players = get_all_players() or {}
         
         if not leagues or not all_players:
             return jsonify({'error': 'No data available'}), 404
         
-        # Encontrar jogador pelo nome
+        # Encontrar jogador pelo nome com fallback robusto
         player_id = None
         player_data = None
+        
         for pid, pdata in all_players.items():
-            if pdata.get('full_name', '').lower() == player_name.lower():
+            full_name = pdata.get('full_name', '').strip()
+            if not full_name:
+                continue
+                
+            if full_name.lower() == player_name.lower():
                 player_id = pid
                 player_data = pdata
                 break
@@ -530,42 +604,40 @@ def player_details():
         if not player_id or not player_data:
             return jsonify({'error': 'Player not found'}), 404
         
-        # Processar status do jogador
+        # Processar status do jogador com formatação consistente
         natural_position = player_data.get('position', '?')
-        natural_status = player_data.get('injury_status') or player_data.get('status', 'Active')
-        status_abbr = STATUS_CONFIG.get(natural_status, {}).get('abbr', natural_status[:2].upper())
+        raw_status = player_data.get('injury_status') or player_data.get('status') or 'Active'
+        natural_status = format_status(raw_status)
         
-        # Buscar em todas as ligas do usuário
+        # Buscar em todas as ligas do usuário com tratamento seguro
         leagues_with_player = []
         
         for league in leagues:
-            league_id = league['league_id']
+            if not league:
+                continue
+                
+            league_id = league.get('league_id')
+            if not league_id:
+                continue
+                
             rosters = get_cached_rosters(league_id) or []
-            user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
             
-            for roster in user_rosters:
-                players_list = roster.get('players', [])
+            for roster in rosters:
+                if not roster or roster.get('owner_id') != user_id:
+                    continue
+                    
+                players_list = roster.get('players', []) or []
                 
                 if player_id in players_list:
-                    # Determinar status do roster com base nas novas regras
-                    if player_id in roster.get('reserve', []):
-                        roster_position = "IR"  # Regra 1: Reserve = IR
-                    elif player_id in roster.get('starters', []):
-                        try:
-                            # Tentar obter posição exata
-                            idx = roster['starters'].index(player_id)
-                            roster_positions = get_league_settings(league_id).get('roster_positions', [])
-                            roster_position = roster_positions[idx] if idx < len(roster_positions) else "ST"
-                        except:
-                            roster_position = "ST"
-                    elif player_id in roster.get('taxi', []):
-                        roster_position = "TS"
-                    else:
-                        roster_position = "BN"  # Regra 2: Não está em starters/taxi/reserve
+                    try:
+                        roster_position = get_roster_position(player_id, roster, league_id)
+                    except Exception as e:
+                        app.logger.warning(f"Error getting roster position: {str(e)}")
+                        roster_position = "BN"
                     
                     leagues_with_player.append({
                         'league_id': league_id,
-                        'league_name': league['name'],
+                        'league_name': league.get('name', 'Unknown League'),
                         'roster_position': roster_position,
                         'roster_id': roster.get('roster_id', 'unknown')
                     })
@@ -574,14 +646,16 @@ def player_details():
         return jsonify({
             'player_name': player_name,
             'position': natural_position,
-            'status': natural_status,
-            'status_abbr': status_abbr,
+            'injury_status': natural_status,
             'leagues': leagues_with_player
         })
         
     except Exception as e:
         app.logger.error(f"Error in player_details: {str(e)}", exc_info=True)
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
 
 @app.errorhandler(Exception)
 def handle_global_errors(e):

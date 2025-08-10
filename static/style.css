@@ -1109,3 +1109,24 @@ main {
         padding: 1rem;
     }
 }
+.status-tag.active {
+    background-color: #8ac926; /* Verde para Active */
+    color: white;
+}
+
+.status-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Mantenha as existentes */
+.status-tag.out { background-color: #ff6b6b; color: white; }
+.status-tag.doubtful { background-color: #ff9e6b; color: white; }
+.status-tag.questionable { background-color: #ffd166; color: #333; }
+.status-tag.probable { background-color: #51cf66; color: white; }
+.status-tag.ir { background-color: #6a6a6a; color: white; }
+.status-tag.suspended { background-color: #5a189a; color: white; }
+.status-tag.pup { background-color: #4361ee; color: white; }

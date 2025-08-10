@@ -410,8 +410,9 @@
     <script>
         // ==================== COMPONENTE PLAYER CARD ====================
         function createPlayerCardComponent(playerData) {
-            const { playerName, leagues, position, injuryStatus, statusAbbr } = playerData;
-            const statusClass = STATUS_CLASSES[injuryStatus] || '';
+            const { playerName, leagues, position, injuryStatus } = playerData;
+            const statusText = injuryStatus || 'Active';
+            const statusClass = STATUS_CLASSES[statusText] || '';
 
             const card = document.createElement('div');
             card.className = 'top-player-card';
@@ -423,13 +424,13 @@
                 </div>
                 <div class="player-status">
                     <span class="player-position">${position || '?'}</span>
-                    <span class="status-tag ${statusClass}">${statusAbbr || 'A'}</span>
+                    <span class="status-tag ${statusClass}">${statusText}</span>
                 </div>
                 <div class="player-leagues">
                     ${leagues.slice(0, 3).map(league => `
                         <div class="league-item">
                             <span>${league.league_name}</span>
-                            <span>${league.roster_position || league.position || 'BN'}</span>
+                            <span>${league.roster_position || 'BN'}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -484,10 +485,11 @@
         
         // Mapeamento de status para classes CSS
         const STATUS_CLASSES = {
-            'OUT': 'out',
-            'Doubtful': 'doubtful',
-            'Questionable': 'questionable',
+            'Active': 'active',
             'Probable': 'probable',
+            'Questionable': 'questionable',
+            'Doubtful': 'doubtful',
+            'OUT': 'out',
             'IR': 'ir',
             'Suspended': 'suspended',
             'PUP': 'pup'
