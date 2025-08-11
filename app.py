@@ -2,11 +2,14 @@ from flask import Flask, render_template, request, session, redirect, url_for, j
 import requests
 import os
 import logging
-from datetime import datetime, timedelta
+import json
+import time as time_module
+from datetime import datetime, timedelta, time
 from functools import wraps
 from dotenv import load_dotenv
 from cachetools import TTLCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 load_dotenv()
 
@@ -26,6 +29,12 @@ app.config.update(
 SPORT = 'nfl'
 CURRENT_SEASON = "2025"
 TOPN = 6
+CACHE_DIR = 'cache'
+PLAYERS_CACHE_FILE = os.path.join(CACHE_DIR, 'players_cache.json')
+
+# Certifique-se de que o diretório de cache existe
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
 
 # Configuração unificada de status
 STATUS_CONFIG = {
@@ -45,6 +54,70 @@ POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DST', 'DL', 'LB', 'DB']
 PLAYERS_CACHE = TTLCache(maxsize=1, ttl=600)  # 10 minutos
 LEAGUE_CACHE = TTLCache(maxsize=100, ttl=300)  # 5 minutos
 
+def is_night_time():
+    """Verifica se está no período noturno (23h às 6h)"""
+    now = datetime.now().time()
+    return now >= time(23, 0) or now < time(6, 0)
+
+def is_morning_time():
+    """Verifica se está no período da manhã (6h às 10h)"""
+    now = datetime.now().time()
+    return time(6, 0) <= now < time(10, 0)
+
+def get_cache_ttl():
+    """Calcula o TTL apropriado baseado no horário atual"""
+    if is_night_time():
+        # Calcula quanto tempo falta até as 6h
+        now = datetime.now()
+        next_6am = (now + timedelta(days=1)).replace(hour=6, minute=0, second=0, microsecond=0)
+        if now.hour >= 23:
+            next_6am = now.replace(hour=6, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        return (next_6am - now).total_seconds()
+    elif is_morning_time():
+        return 3600  # 1 hora
+    else:
+        return 600   # 10 minutos
+
+def load_players_from_disk():
+    """Carrega jogadores do cache em disco se estiver válido"""
+    try:
+        if not os.path.exists(PLAYERS_CACHE_FILE):
+            return None, 0
+            
+        mod_time = os.path.getmtime(PLAYERS_CACHE_FILE)
+        current_time = time_module.time()
+        
+        # Verifica se o cache foi criado durante a noite
+        mod_datetime = datetime.fromtimestamp(mod_time)
+        mod_was_night = mod_datetime.hour >= 23 or mod_datetime.hour < 6
+        
+        if mod_was_night and is_night_time():
+            # Cache noturno é sempre válido durante a noite
+            with open(PLAYERS_CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f), mod_time
+                
+        # Para outros casos, usa TTL padrão baseado no horário atual
+        ttl = get_cache_ttl()
+        if current_time - mod_time < ttl:
+            with open(PLAYERS_CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f), mod_time
+                
+        return None, mod_time
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao ler cache de jogadores: {str(e)}")
+        return None, 0
+
+def save_players_to_disk(players_data):
+    """Salva jogadores no cache em disco"""
+    try:
+        with open(PLAYERS_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(players_data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        app.logger.error(f"Erro ao salvar cache de jogadores: {str(e)}")
+        return False
+
 # ==================== FUNÇÕES AUXILIARES ====================
 def sleeper_request(url, timeout=10):
     """Wrapper para requests à API Sleeper com tratamento de erros"""
@@ -59,24 +132,30 @@ def sleeper_request(url, timeout=10):
         return None
 
 def get_all_players():
-    """Obtém todos os jogadores ativos da NFL com cache TTLCache"""
+    """Obtém todos os jogadores ativos com cache baseado em horário"""
     try:
-        # Verifica se está no cache
-        if 'data' in PLAYERS_CACHE:
-            return PLAYERS_CACHE['data']
-        
+        # Tenta carregar do cache em disco
+        cached_data, mod_time = load_players_from_disk()
+        if cached_data:
+            return cached_data
+            
+        # Busca da API se não tiver cache válido
         players = sleeper_request(f'https://api.sleeper.app/v1/players/{SPORT}', timeout=15)
         
         if not players:
             app.logger.warning("Resposta vazia da API de jogadores")
             return {}
             
-        active_players = {}
-        for player_id, player_data in players.items():
-            if player_data.get('active') is True:
-                active_players[player_id] = player_data
+        # Filtra apenas jogadores ativos
+        active_players = {
+            player_id: player_data
+            for player_id, player_data in players.items()
+            if player_data.get('active') is True
+        }
         
-        PLAYERS_CACHE['data'] = active_players
+        # Salva no disco
+        save_players_to_disk(active_players)
+        
         return active_players
         
     except Exception as e:
@@ -331,6 +410,40 @@ def index():
 def dashboard():
     return render_template('dashboard.html', username=session['username'])
 
+@app.route('/api/refresh-players-cache')
+@login_required
+def refresh_players_cache():
+    """Força a atualização do cache de jogadores"""
+    try:
+        # Busca novos dados da API
+        players = sleeper_request(f'https://api.sleeper.app/v1/players/{SPORT}', timeout=15)
+        
+        if not players:
+            return jsonify({'success': False, 'message': 'Failed to fetch players'}), 500
+            
+        # Filtra ativos e salva
+        active_players = {
+            player_id: player_data
+            for player_id, player_data in players.items()
+            if player_data.get('active') is True
+        }
+        
+        # Atualiza caches
+        PLAYERS_CACHE['data'] = active_players
+        save_players_to_disk(active_players)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cache atualizado com {len(active_players)} jogadores'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao atualizar cache: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': 'Erro interno ao atualizar cache'
+        }), 500
+
 @app.route('/league/<league_id>')
 @login_required
 def league(league_id):
@@ -375,6 +488,30 @@ def refresh_league_status():
         return jsonify(status_data)
     except Exception as e:
         app.logger.error(f"Error refreshing league status: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/cache-info')
+@login_required
+def cache_info():
+    """Retorna informações sobre o estado do cache"""
+    try:
+        if os.path.exists(PLAYERS_CACHE_FILE):
+            mod_time = os.path.getmtime(PLAYERS_CACHE_FILE)
+            mod_datetime = datetime.fromtimestamp(mod_time)
+            ttl = get_cache_ttl()
+            expires_at = datetime.fromtimestamp(mod_time + ttl)
+            
+            return jsonify({
+                'last_updated': mod_datetime.isoformat(),
+                'expires_at': expires_at.isoformat(),
+                'ttl_seconds': ttl,
+                'cache_size': os.path.getsize(PLAYERS_CACHE_FILE),
+                'is_night': is_night_time(),
+                'is_morning': is_morning_time()
+            })
+        return jsonify({'status': 'no_cache'})
+    except Exception as e:
+        app.logger.error(f"Error getting cache info: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/top-players')
