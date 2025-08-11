@@ -1130,3 +1130,70 @@ main {
 .status-tag.ir { background-color: #6a6a6a; color: white; }
 .status-tag.suspended { background-color: #5a189a; color: white; }
 .status-tag.pup { background-color: #4361ee; color: white; }
+
+#kofi-float {
+  transition: transform 0.3s ease;
+}
+
+#kofi-float:hover {
+  transform: scale(1.05);
+}
+
+/* Mobile: aumenta área de toque */
+@media (max-width: 768px) {
+  #kofi-float {
+    bottom: 10px;
+    right: 10px;
+  }
+  #kofi-float img {
+    height: 45px !important;
+  }
+}
+/* Garante que não cubra elementos críticos */
+#kofi-float {
+  pointer-events: auto;
+}
+
+/* Evita sobreposição em elementos do footer */
+footer {
+  padding-bottom: 70px !important;
+}
+
+@media (max-width: 768px) {
+  footer {
+    padding-bottom: 60px !important;
+  }
+}
+#kofi-modal {
+  transition: opacity 0.3s ease;
+}
+
+#kofi-modal > div {
+  animation: modalFadeIn 0.5s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#kofi-modal {
+  transition: opacity 0.3s;
+}
+
+#kofi-modal > div {
+  animation: fadeIn 0.5s;
+  pointer-events: auto;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#kofi-support {
+  transition: background 0.3s;
+}
+
+#kofi-support:hover {
+  background: #1c7aac !important;
+}
