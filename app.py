@@ -24,7 +24,7 @@ app.config.update(
 
 # Configurações
 SPORT = 'nfl'
-CURRENT_SEASON = datetime.now().year
+CURRENT_SEASON = "2025"
 TOPN = 6
 
 # Configuração unificada de status
