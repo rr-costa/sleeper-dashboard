@@ -319,11 +319,6 @@
             </div>
             <div class="header-right">
                 <span class="username">{{ username }}</span>
-                <div class="season-selector">
-                    <label for="season-select">Season:</label>
-                    <select id="season-select">
-                        <!-- As opções serão preenchidas via JavaScript -->
-                    </select>
                 <a href="#" id="logout-link" class="btn-secondary">Sign Out</a>
             </div>
         </header>
@@ -518,7 +513,7 @@
 
         // Estado centralizado da aplicação
         const appState = {
-            currentSeason: new Date().getFullYear(),
+            currentSeason: "2025",
             expandedState: {}
         };
 
@@ -894,48 +889,6 @@
             }
         }
         
-        // Carrega anos disponíveis
-        async function loadAvailableYears() {
-            try {
-                const response = await fetch('/api/available-years');
-                if (!response.ok) {
-                    throw new Error('Failed to load available years');
-                }
-                
-                const years = await response.json();
-                const seasonSelect = document.getElementById('season-select');
-                
-                years.sort((a, b) => b - a);
-                seasonSelect.innerHTML = '';
-
-                years.forEach(year => {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    seasonSelect.appendChild(option);
-                });
-                
-                const currentYear = new Date().getFullYear();
-                seasonSelect.value = years.includes(currentYear) ? currentYear : years[0];
-                appState.currentSeason = parseInt(seasonSelect.value);
-
-                seasonSelect.addEventListener('change', () => {
-                    appState.currentSeason = parseInt(seasonSelect.value);
-                    reloadCurrentTab();
-                });
-                
-            } catch (error) {
-                console.error('Error loading years:', error);
-                const seasonSelect = document.getElementById('season-select');
-                seasonSelect.innerHTML = `
-                    <option value="${new Date().getFullYear()}">
-                        ${new Date().getFullYear()}
-                    </option>
-                `;
-                appState.currentSeason = new Date().getFullYear();
-            }
-        }
-
         // Recarrega a aba atual
         function reloadCurrentTab() {
             const activeTab = document.querySelector('.tab-content.active').id;
@@ -986,13 +939,9 @@
         // Inicialização corrigida
         async function initializeApp() {
             try {
-                // Primeiro carrega os anos disponíveis
-                await loadAvailableYears();
-                
                 // Configura componentes básicos
                 setupTabs();
                 setupLogout();
-                
                 // Determina qual aba iniciar
                 const activeTab = document.querySelector('.tab-content.active').id;
                 
