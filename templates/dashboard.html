@@ -35,7 +35,30 @@
             gap: 1rem;
             margin-top: 1.5rem;
         }
-        .league-card, .status-group {
+        /* ESTILO ATUALIZADO PARA O TÍTULO */
+        .header-left h1 {
+            font-family: 'Arial Black', 'Impact', sans-serif;
+            font-size: 2.8rem;
+            color: #013369; /* Azul principal da NFL */
+            letter-spacing: -1px;
+            position: relative;
+            display: inline-block;
+            margin: 0;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .header-left h1::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        tatus-group {
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 1rem;
