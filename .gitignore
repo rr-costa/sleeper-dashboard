@@ -4,6 +4,6 @@ __pycache__/
 *.pyc
 .vscode/
 .idea/
+.cache
 *.log
-*.json
 .DS_Store

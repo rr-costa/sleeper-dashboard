@@ -162,13 +162,13 @@ def get_all_players():
         app.logger.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
         return {}
 
-def get_cached_leagues(user_id, season):
+def get_cached_leagues(user_id):
     """Obtém ligas com cache TTLCache"""
-    cache_key = (user_id, season)
+    cache_key = (user_id, CURRENT_SEASON)
     if cache_key in LEAGUE_CACHE:
         return LEAGUE_CACHE[cache_key]
     
-    leagues = sleeper_request(f'https://api.sleeper.app/v1/user/{user_id}/leagues/nfl/{season}', timeout=10) or []
+    leagues = sleeper_request(f'https://api.sleeper.app/v1/user/{user_id}/leagues/nfl/{CURRENT_SEASON}', timeout=10) or []
     LEAGUE_CACHE[cache_key] = leagues
     return leagues
 
@@ -254,13 +254,13 @@ def _process_player_status(player_id, all_players):
             'injury_status': 'Unknown'
         }, 'Unknown'
 
-def get_starters_with_status(user_id, season, force_refresh=False):
+def get_starters_with_status(user_id, force_refresh=False):
     """Obtém starters com status usando paralelização"""
     try:
         if force_refresh:
             LEAGUE_CACHE.clear()
             
-        leagues = get_cached_leagues(user_id, season)
+        leagues = get_cached_leagues(user_id)
         all_players = get_all_players()
         leagues_data = {}
         
@@ -470,8 +470,8 @@ def player_status():
     """Endpoint para obter dados de status dos jogadores (cache normal)"""
     try:
         user_id = session['user_id']
-        season = request.args.get('season', CURRENT_SEASON, type=int)
-        status_data = get_starters_with_status(user_id, season)
+        #season = request.args.get('season', CURRENT_SEASON, type=int)
+        status_data = get_starters_with_status(user_id)
         return jsonify(status_data)
     except Exception as e:
         app.logger.error(f"Error in player_status endpoint: {str(e)}", exc_info=True)
@@ -483,8 +483,8 @@ def refresh_league_status():
     """Endpoint para forçar atualização das ligas e rosters"""
     try:
         user_id = session['user_id']
-        season = request.args.get('season', CURRENT_SEASON, type=int)
-        status_data = get_starters_with_status(user_id, season, force_refresh=True)
+        #season = request.args.get('season', CURRENT_SEASON, type=int)
+        status_data = get_starters_with_status(user_id, force_refresh=True)
         return jsonify(status_data)
     except Exception as e:
         app.logger.error(f"Error refreshing league status: {str(e)}", exc_info=True)
@@ -519,8 +519,8 @@ def cache_info():
 def top_players():
     try:
         user_id = session['user_id']
-        season = request.args.get('season', CURRENT_SEASON, type=int)
-        leagues = get_cached_leagues(user_id, season) or []
+        #season = request.args.get('season', CURRENT_SEASON, type=int)
+        leagues = get_cached_leagues(user_id) or []
         all_players_data = get_all_players() or {}
         
         if not leagues or not all_players_data:
@@ -671,13 +671,6 @@ def search_players():
         app.logger.error(f"Error in search_players: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/available-years')
-@login_required
-def available_years():
-    current_year = datetime.now().year
-    years = list(range(2023, current_year + 1))
-    return jsonify(years)
-
 def format_status(status):
     """Formata o status para um padrão consistente: primeira letra maiúscula, resto minúscula"""
     if not status:
@@ -714,11 +707,11 @@ def player_details():
         if not player_name or len(player_name) < 2:
             return jsonify({'error': 'Invalid player name'}), 400
             
-        season = request.args.get('season', CURRENT_SEASON, type=int)
+        #season = request.args.get('season', CURRENT_SEASON, type=int)
         user_id = session['user_id']
         
         # Buscar ligas e jogadores com tratamento de null
-        leagues = get_cached_leagues(user_id, season) or []
+        leagues = get_cached_leagues(user_id) or []
         all_players = get_all_players() or {}
         
         if not leagues or not all_players:
