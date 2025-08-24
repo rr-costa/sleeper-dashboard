@@ -49,7 +49,7 @@ STATUS_CONFIG = {
 }
 
 # Ordem das posições para exibição
-POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DST', 'DL', 'LB', 'DB']
+POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DL', 'LB', 'DB']
 
 # Caches com TTLCache
 PLAYERS_CACHE = TTLCache(maxsize=1, ttl=600)  # 10 minutos
@@ -639,7 +639,15 @@ def search_players():
         results = []
         
         for player_id, player in all_players.items():
-            full_name = player.get('full_name', '').lower()
+            #full_name = player.get('full_name', '').lower()
+            full_name = player.get('full_name')
+            if not full_name:
+                first_name = player.get('first_name', '')
+                last_name = player.get('last_name', '')
+                full_name = f"{first_name} {last_name}".strip()
+
+            full_name = full_name.lower() if full_name else ''
+            
             if not full_name:
                 continue
                 
@@ -657,9 +665,15 @@ def search_players():
             status = player.get('status', 'Active')
             status_abbr = STATUS_CONFIG.get(status, {}).get('abbr', '')
             
+            full_name = player.get('full_name')
+            if not full_name:
+                first_name = player.get('first_name', '')
+                last_name = player.get('last_name', '')
+                full_name = f"{first_name} {last_name}".strip()
+
             results.append({
                 'id': player_id,
-                'name': player.get('full_name', 'Unknown Player'),
+                'name': full_name,
                 'positions': player_positions,
                 'status': status,
                 'status_abbr': status_abbr
@@ -724,6 +738,11 @@ def player_details():
         
         for pid, pdata in all_players.items():
             full_name = pdata.get('full_name', '').strip()
+            if not full_name:
+                first_name = pdata.get('first_name', '')
+                last_name = pdata.get('last_name', '')
+                full_name = f"{first_name} {last_name}".strip()
+            
             if not full_name:
                 continue
                 
