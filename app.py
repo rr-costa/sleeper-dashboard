@@ -9,13 +9,14 @@ from functools import wraps
 from dotenv import load_dotenv
 from cachetools import TTLCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = os.getenv('SECRET_KEY', 'secret_key_default')
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
