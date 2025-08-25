@@ -16,14 +16,21 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-app.secret_key = os.getenv('SECRET_KEY', 'secret_key_default')
+app.secret_key = os.getenv('SECRET_KEY', 'fallback-secret-key-muito-longa-aleatoria-aqui')
 app.config.update(
+    SECRET_KEY=app.secret_key,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=False,
     PERMANENT_SESSION_LIFETIME=timedelta(hours=1),
     SESSION_REFRESH_EACH_REQUEST=True
+)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, 
+    x_for=1,
+    x_proto=1, 
+    x_host=1, 
+    x_port=1
 )
 
 # Configurações
