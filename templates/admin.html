@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - Acessos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .admin-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            height: 20vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .admin-content {
+            padding: 2rem;
+            height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .login-form {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .admin-panel {
+            display: none;
+        }
+        
+        .admin-actions {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: #ffeaea;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #27ae60;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: #eaffea;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .welcome-message {
+            margin-bottom: 1rem;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <h1>Painel de Administração</h1>
+        <p>Monitoramento de acessos ao NFL Fantasy Dashboard</p>
+    </div>
+    
+    <div class="admin-content">
+        <!-- Formulário de Login -->
+        <div id="login-form" class="login-form">
+            <h2>Login Administrativo</h2>
+            <div class="form-group">
+                <label for="admin-username">Usuário</label>
+                <input type="text" id="admin-username" placeholder="Digite o usuário">
+            </div>
+            <div class="form-group">
+                <label for="admin-password">Senha</label>
+                <input type="password" id="admin-password" placeholder="Digite a senha">
+            </div>
+            <button class="btn btn-primary" onclick="adminLogin()">Entrar</button>
+            
+            <div id="login-error" class="error-message"></div>
+        </div>
+        
+        <!-- Painel Administrativo -->
+        <div id="admin-panel" class="admin-panel">
+            <div class="welcome-message">
+                <h2>Bem-vindo, Administrador!</h2>
+                <p>Registro de acessos ao sistema</p>
+            </div>
+            
+            <div class="admin-actions">
+                <button class="btn btn-danger" onclick="clearAccessLog()">Limpar Registros</button>
+                <button class="btn btn-primary" onclick="adminLogout()">Sair</button>
+            </div>
+            
+            <div id="access-log-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Data/Hora</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="access-log-body">
+                        <!-- Os dados serão preenchidos via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="message-area"></div>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(message, type) {
+            const messageArea = document.getElementById('message-area');
+            messageArea.innerHTML = `
+                <div class="${type}-message">
+                    ${message}
+                </div>
+            `;
+            messageArea.style.display = 'block';
+            
+            setTimeout(() => {
+                messageArea.style.display = 'none';
+            }, 5000);
+        }
+        
+        function adminLogin() {
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            
+            if (!username || !password) {
+                document.getElementById('login-error').textContent = 'Por favor, preencha todos os campos';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+            
+            fetch('/loginadmin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    loadAccessLog();
+                } else {
+                    document.getElementById('login-error').textContent = data.message || 'Erro no login';
+                    document.getElementById('login-error').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('login-error').textContent = 'Erro de conexão';
+                document.getElementById('login-error').style.display = 'block';
+            });
+        }
+        
+        function loadAccessLog() {
+            fetch('/api/admin/access-log', {
+                credentials: 'include'  // Adicione esta linha
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Sessão expirou ou não está autenticado
+                    adminLogout();
+                    throw new Error('Não autorizado');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('access-log-body');
+                tbody.innerHTML = '';
+                
+                if (data.error) {
+                    showMessage(data.error, 'error');
+                    return;
+                }
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align: center;">Nenhum registro de acesso encontrado</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                data.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.username}</td>
+                        <td>${entry.timestamp}</td>
+                        <td>${entry.ip || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                if (error.message === 'Não autorizado') {
+                    showMessage('Sessão expirada. Faça login novamente.', 'error');
+                } else {
+                    showMessage('Erro ao carregar registros de acesso', 'error');
+                }
+            });
+        }
+        
+        function clearAccessLog() {
+            if (!confirm('Tem certeza que deseja limpar todos os registros de acesso? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+            
+            fetch('/api/admin/clear-log', {
+                method: 'POST',
+                credentials: 'include'  // Adicione esta linha
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Registros limpos com sucesso', 'success');
+                    loadAccessLog();
+                } else {
+                    showMessage(data.error || 'Erro ao limpar registros', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Erro ao limpar registros', 'error');
+            });
+        }
+        
+        function adminLogout() {
+            fetch('/api/admin/logout', {
+                credentials: 'include'  // Adicione esta linha
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+                document.getElementById('admin-username').value = '';
+                document.getElementById('admin-password').value = '';
+            })
+            .catch(error => {
+                console.error('Erro no logout:', error);
+            });
+        }
+        
+        // Verificar se já está logado ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tenta carregar os logs caso já esteja logado
+            fetch('/api/admin/access-log', {
+                credentials: 'include'  // Adicione esta linha
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                if (response.status === 401) {
+                    throw new Error('Não autorizado');
+                }
+                throw new Error('Erro ao carregar dados');
+            })
+            .then(data => {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                
+                const tbody = document.getElementById('access-log-body');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align: center;">Nenhum registro de acesso encontrado</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                data.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.username}</td>
+                        <td>${entry.timestamp}</td>
+                        <td>${entry.ip || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                // Não está logado, mantém o formulário visível
+                console.log('Usuário não autenticado:', error.message);
+            });
+        });
+    </script>
+</body>
+</html>

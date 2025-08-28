@@ -4,6 +4,7 @@ import os
 import logging
 import json
 import time as time_module
+import base64
 from datetime import datetime, timedelta, time
 from functools import wraps
 from dotenv import load_dotenv
@@ -39,6 +40,13 @@ CURRENT_SEASON = "2025"
 TOPN = 6
 CACHE_DIR = 'cache'
 PLAYERS_CACHE_FILE = os.path.join(CACHE_DIR, 'players_cache.json')
+
+# Credenciais do admin
+ADMIN_CREDENTIALS = {
+    'username': 'saopaulojets',
+    'password': '@SB69iii'
+}
+ACCESS_LOG_FILE = os.path.join(CACHE_DIR, 'access_log.json')
 
 # Certifique-se de que o diretório de cache existe
 if not os.path.exists(CACHE_DIR):
@@ -126,7 +134,6 @@ def save_players_to_disk(players_data):
         app.logger.error(f"Erro ao salvar cache de jogadores: {str(e)}")
         return False
 
-# ==================== FUNÇÕES AUXILIARES ====================
 def sleeper_request(url, timeout=10):
     """Wrapper para requests à API Sleeper com tratamento de erros"""
     try:
@@ -205,7 +212,6 @@ def get_user_id(username):
     user_data = sleeper_request(f'https://api.sleeper.app/v1/user/{username}', timeout=5)
     return user_data.get('user_id') if user_data else None
 
-# ==================== PROCESSAMENTO DE STATUS ====================
 def _process_empty_positions(starters, roster_positions):
     """Identifica posições vazias no lineup usando nomes reais"""
     empty = []
@@ -343,7 +349,6 @@ def get_starters_with_status(user_id, force_refresh=False):
         app.logger.error(f"Error in get_starters_with_status: {str(e)}", exc_info=True)
         return {}
 
-# ==================== DECORATORS E HELPERS ====================
 def login_required(f):
     """Decorator para rotas que requerem login"""
     @wraps(f)
@@ -362,7 +367,6 @@ def add_csp(response):
     response.headers['Content-Security-Policy'] = csp
     return response
 
-# ==================== ROTAS ====================
 @app.route('/login', methods=['POST'])
 def login():
     """Realiza o login do usuário"""
@@ -379,6 +383,10 @@ def login():
     if user_id:
         session['user_id'] = user_id
         session['username'] = username
+
+        # Registrar acesso
+        log_user_access(username)
+
         return jsonify({'success': True})
     
     return jsonify({
@@ -451,6 +459,11 @@ def refresh_players_cache():
             'success': False,
             'message': 'Erro interno ao atualizar cache'
         }), 500
+
+@app.route('/cache')
+@login_required
+def cache_management():
+    return render_template('cache.html')
 
 @app.route('/league/<league_id>')
 @login_required
@@ -840,7 +853,107 @@ def get_league_data(league_id, components):
             data[comp] = sleeper_request(endpoints[comp]) or []
     
     return data
+
+    """Registra acesso de usuário no arquivo de log"""
+    try:
+        if os.path.exists(ACCESS_LOG_FILE):
+            with open(ACCESS_LOG_FILE, 'r', encoding='utf-8') as f:
+                access_data = json.load(f)
+        else:
+            access_data = []
+        
+        access_data.append({
+            'username': username,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'ip': request.remote_addr
+        })
+        
+        with open(ACCESS_LOG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(access_data, f, indent=2, ensure_ascii=False)
+            
+    except Exception as e:
+        app.logger.error(f"Erro ao registrar acesso: {str(e)}")
+
+def log_user_access(username):
+    """Registra acesso de usuário no arquivo de log"""
+    try:
+        if os.path.exists(ACCESS_LOG_FILE):
+            with open(ACCESS_LOG_FILE, 'r', encoding='utf-8') as f:
+                access_data = json.load(f)
+        else:
+            access_data = []
+        
+        access_data.append({
+            'username': username,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'ip': request.remote_addr
+        })
+        
+        with open(ACCESS_LOG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(access_data, f, indent=2, ensure_ascii=False)
+            
+    except Exception as e:
+        app.logger.error(f"Erro ao registrar acesso: {str(e)}")
+
+# Adicione estas novas rotas para a administração
+@app.route('/admin')
+def admin_page():
+    """Página de administração"""
+    return render_template('admin.html')
+
+@app.route('/loginadmin', methods=['POST'])
+def admin_login():
+    """Login para área administrativa"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
     
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Credenciais necessárias'}), 400
+    
+    if username == ADMIN_CREDENTIALS['username'] and password == ADMIN_CREDENTIALS['password']:
+        session['admin_logged_in'] = True
+        session.permanent = True  # Adicione esta linha
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'message': 'Credenciais inválidas'}), 401
+
+@app.route('/api/admin/access-log')
+def get_access_log():
+    """Retorna o log de acessos (requer autenticação admin)"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    try:
+        if os.path.exists(ACCESS_LOG_FILE):
+            with open(ACCESS_LOG_FILE, 'r', encoding='utf-8') as f:
+                access_data = json.load(f)
+            return jsonify(access_data)
+        return jsonify([])
+    except Exception as e:
+        app.logger.error(f"Erro ao ler log de acessos: {str(e)}")
+        return jsonify({'error': 'Erro ao carregar dados'}), 500
+
+@app.route('/api/admin/clear-log', methods=['POST'])
+def clear_access_log():
+    """Limpa o log de acessos"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    try:
+        if os.path.exists(ACCESS_LOG_FILE):
+            os.remove(ACCESS_LOG_FILE)
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Erro ao limpar log: {str(e)}")
+        return jsonify({'error': 'Erro ao limpar log'}), 500
+
+@app.route('/api/admin/logout')
+def admin_logout():
+    """Logout da área administrativa"""
+    session.pop('admin_logged_in', None)
+    return jsonify({'success': True})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
