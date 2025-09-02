@@ -56,6 +56,12 @@ function loadAccessLog() {
             <td>${entry.username}</td>
             <td>${entry.count}</td>
         `, 2);
+        
+        // NOVA CHAMADA PARA PREENCHER A TABELA DE HORÁRIOS
+        populateTable('top-hours-body', data.top_access_hours, entry => `
+            <td>${entry.hour_range}</td>
+            <td>${entry.count}</td>
+        `, 2);
     })
     .catch(error => {
         if (error.message !== 'Não autorizado') {
@@ -125,9 +131,7 @@ function adminLogout() {
     .catch(error => console.error('Erro no logout:', error));
 }
 
-// Tenta carregar os logs ao carregar a página para verificar se já está logado
 document.addEventListener('DOMContentLoaded', function() {
-    // Adiciona o listener de clique para o botão de login
     const loginButton = document.querySelector('#login-form button');
     if (loginButton) {
         loginButton.addEventListener('click', adminLogin);
