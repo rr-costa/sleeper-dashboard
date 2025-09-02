@@ -1,0 +1,1199 @@
+/* static/style.css */
+/* Variáveis de cores */
+:root {
+    --primary: #4361ee;
+    --primary-dark: #3a56d4;
+    --secondary: #6c757d;
+    --success: #4cc9f0;
+    --danger: #e63946;
+    --warning: #ffd166;
+    --info: #90e0ef;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --border: #dee2e6;
+    --card-bg: #ffffff;
+    --background: #f5f7fb;
+    --pup: #4361ee;
+    --ir: #6a6a6a;
+    --suspended: #5a189a;
+    --out: #ff6b6b;
+    --doubtful: #ff9e6b;
+    --questionable: #ffd166;
+    --probable: #8ac926;
+}
+
+/* Reset e estilos gerais */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--dark);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Container de login */
+.login-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    align-items: center;
+}
+
+.login-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 2rem;
+}
+
+.logo {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.logo img {
+    height: 40px;
+}
+
+.login-card h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: var(--dark);
+    text-align: center;
+}
+
+.input-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+/* Botões */
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--secondary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-secondary:hover {
+    opacity: 0.9;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+/* Mensagens de erro */
+.error-message {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    display: none;
+}
+
+.error {
+    background: #ffebee;
+    color: #b71c1c;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #d32f2f;
+}
+
+/* Cards de features */
+.features {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 500px;
+    margin-top: 2rem;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.feature-card h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--dark);
+}
+
+.feature-card p {
+    color: var(--secondary);
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left .logo img {
+    height: 30px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.username {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+/* Abas */
+.tabs {
+    display: flex;
+    background: white;
+    padding: 0 30px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 70px;
+    z-index: 90;
+}
+
+.tab-btn {
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--secondary);
+    position: relative;
+    transition: color 0.3s;
+}
+
+.tab-btn.active {
+    color: var(--primary);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--primary);
+}
+
+/* Conteúdo principal */
+main {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h2 {
+    margin-bottom: 10px;
+    color: var(--dark);
+    font-size: 1.8rem;
+}
+
+.tab-content p {
+    color: var(--secondary);
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+/* Status Player Tab */
+.status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Container de ligas */
+.leagues-container {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+/* Card da liga */
+.league-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+}
+
+.league-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.league-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: #f8f9ff;
+    transition: background 0.3s;
+}
+
+.league-header:hover {
+    background: #eef1ff;
+}
+
+.league-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.league-info h3 {
+    font-size: 1.2rem;
+    color: var(--dark);
+}
+
+.toggle-icon {
+    font-size: 14px;
+    transition: transform 0.3s;
+}
+
+.league-header[data-expanded="true"] .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.badge {
+    background: var(--primary);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Conteúdo da liga */
+.league-content {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.league-header[data-expanded="true"] + .league-content {
+    padding: 15px;
+    max-height: 3000px;
+}
+
+/* Grupo de status */
+.status-group {
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.group-header {
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: #fafafa;
+}
+
+.group-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.group-info h4 {
+    font-size: 1rem;
+    color: var(--dark);
+}
+
+.group-content {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.group-header[data-expanded="true"] + .group-content {
+    max-height: 2000px;
+}
+
+/* Lista de jogadores */
+.player-list {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+}
+
+.player-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 6px;
+    background: #f9f9f9;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.player-info strong {
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.player-info span {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Tags de status */
+.status-tag {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    min-width: 80px;
+    text-align: center;
+}
+
+.status-tag.pup { 
+    background: var(--pup);
+    color: white; 
+}
+
+.status-tag.ir { 
+    background: var(--ir);
+    color: white; 
+}
+
+.status-tag.suspended { 
+    background: var(--suspended);
+    color: white; 
+}
+
+.status-tag.out { 
+    background: var(--out);
+    color: white; 
+}
+
+.status-tag.doubtful { 
+    background: var(--doubtful);
+    color: #333; 
+}
+
+.status-tag.questionable { 
+    background: var(--questionable);
+    color: #333; 
+}
+
+.status-tag.probable { 
+    background: var(--probable);
+    color: white; 
+}
+
+/* Posições vazias */
+.empty-positions {
+    padding: 10px;
+}
+
+.position-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+}
+
+.position-tag {
+    padding: 6px 12px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Mensagem sem problemas */
+.no-issues {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    margin-top: 20px;
+}
+
+.no-issues .icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.no-issues h3 {
+    color: var(--primary);
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.no-issues p {
+    color: var(--secondary);
+    font-size: 1.1rem;
+}
+
+/* Find for Player Tab */
+.find-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Top Players */
+.top-players-section {
+    margin-bottom: 2rem;
+}
+
+.top-players-section h3 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    color: var(--dark);
+}
+
+.top-players {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.top-player-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.top-player-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.player-header h4 {
+    font-size: 1.1rem;
+    color: var(--dark);
+}
+
+.player-status {
+    font-size: 0.9rem;
+    color: var(--secondary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.player-status-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.player-leagues {
+    font-size: 0.9rem;
+}
+
+.league-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.league-item:last-child {
+    border-bottom: none;
+}
+
+.more-leagues {
+    text-align: center;
+    padding: 0.5rem;
+    color: var(--primary);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Player Search */
+.player-search-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.position-filters {
+    margin: 1.5rem 0;
+}
+
+.position-filters h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.positions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.position-filter {
+    display: flex;
+    align-items: center;
+    background: #f5f7fb;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.position-filter:hover {
+    background: #e9ecef;
+}
+
+.position-filter input {
+    margin-right: 0.5rem;
+}
+
+.search-box {
+    position: relative;
+    margin: 1rem 0 2rem;
+}
+
+#player-search-input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+#player-search-input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 100;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+}
+
+.suggestion-item {
+    padding: 0.8rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: #f8f9ff;
+}
+
+.suggestion-item .status-tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.search-results {
+    margin-top: 1.5rem;
+    min-height: 200px;
+}
+
+/* Loading states */
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--secondary);
+    font-style: italic;
+}
+
+.no-players, .no-results {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Footer de login */
+.login-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.login-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+    .login-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .login-card, .features {
+        max-width: 100%;
+    }
+    
+    header {
+        padding: 10px 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .tabs {
+        padding: 0 15px;
+        top: 110px;
+    }
+    
+    main {
+        padding: 15px;
+    }
+    
+    .top-players {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-header, .find-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+    .league-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .tabs {
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+}
+
+.group-header {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.group-header:hover {
+    background-color: #e9ecef;
+}
+/* Adicione estas regras CSS */
+.group-header {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.group-header:hover {
+    background-color: #e9ecef;
+}
+
+/* Mantenha os estilos existentes e adicione este */
+.status-group {
+    margin-bottom: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.group-content {
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+}
+/* Estilos para a tabela de ligas */
+.player-leagues-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.player-leagues-table th, 
+.player-leagues-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.player-leagues-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pagination-btn:hover {
+    background-color: #3a5be7;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    color: #6c757d;
+}
+.player-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.player-position {
+    font-weight: bold;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+.player-search-section .search-results {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.player-search-section .top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 280px;
+    width: 100%;
+    max-width: 500px; /* Limite máximo de largura */
+}
+
+/* Remover margem do badge para melhor alinhamento */
+.player-search-section .badge {
+    margin-left: 0.5rem;
+}
+
+/* Ajustar layout da meta do jogador */
+.player-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+/* Adicione estas regras ao seu CSS existente */
+.player-search-section .league-item {
+    border-bottom: none !important; /* Remove a borda inferior */
+    padding: 0.5rem 0; /* Ajusta o espaçamento */
+}
+
+.player-search-section .player-leagues {
+    border-top: none !important; /* Remove a borda superior */
+    padding-top: 0; /* Remove o espaçamento superior */
+}
+
+/* Mantenha as outras regras de centralização */
+.player-search-section .search-results {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
+}
+/* Estilo atualizado para os cards dos Top Players */
+.top-players-section .top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.top-players-section .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.top-players-section .player-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.top-players-section .player-position {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.top-players-section .player-leagues {
+    border-top: 1px solid #eee;
+    padding-top: 0.5rem;
+}
+
+.top-players-section .league-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.top-players-section .league-item:last-child {
+    border-bottom: none;
+}
+
+/* Layout responsivo */
+@media (max-width: 768px) {
+    .top-players-section .top-player-card {
+        padding: 1rem;
+    }
+}
+/* Estilo unificado para os cards */
+.top-player-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.top-player-card .player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.top-player-card .player-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.top-player-card .player-position {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.top-player-card .player-leagues {
+    border-top: 1px solid #eee;
+    padding-top: 0.5rem;
+}
+
+.top-player-card .league-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.top-player-card .league-item:last-child {
+    border-bottom: none;
+}
+
+.top-player-card .more-leagues {
+    color: #4a6cf7;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    font-weight: bold;
+}
+
+/* Layout responsivo */
+@media (max-width: 768px) {
+    .top-player-card {
+        padding: 1rem;
+    }
+}
+.status-tag.active {
+    background-color: #8ac926; /* Verde para Active */
+    color: white;
+}
+
+.status-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Mantenha as existentes */
+.status-tag.out { background-color: #ff6b6b; color: white; }
+.status-tag.doubtful { background-color: #ff9e6b; color: white; }
+.status-tag.questionable { background-color: #ffd166; color: #333; }
+.status-tag.probable { background-color: #51cf66; color: white; }
+.status-tag.ir { background-color: #6a6a6a; color: white; }
+.status-tag.suspended { background-color: #5a189a; color: white; }
+.status-tag.pup { background-color: #4361ee; color: white; }
+
+#kofi-float {
+  transition: transform 0.3s ease;
+}
+
+#kofi-float:hover {
+  transform: scale(1.05);
+}
+
+/* Mobile: aumenta área de toque */
+@media (max-width: 768px) {
+  #kofi-float {
+    bottom: 10px;
+    right: 10px;
+  }
+  #kofi-float img {
+    height: 45px !important;
+  }
+}
+/* Garante que não cubra elementos críticos */
+#kofi-float {
+  pointer-events: auto;
+}
+
+/* Evita sobreposição em elementos do footer */
+footer {
+  padding-bottom: 70px !important;
+}
+
+@media (max-width: 768px) {
+  footer {
+    padding-bottom: 60px !important;
+  }
+}
+#kofi-modal {
+  transition: opacity 0.3s ease;
+}
+
+#kofi-modal > div {
+  animation: modalFadeIn 0.5s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#kofi-modal {
+  transition: opacity 0.3s;
+}
+
+#kofi-modal > div {
+  animation: fadeIn 0.5s;
+  pointer-events: auto;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#kofi-support {
+  transition: background 0.3s;
+}
+
+#kofi-support:hover {
+  background: #1c7aac !important;
+}
