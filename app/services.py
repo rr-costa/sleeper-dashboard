@@ -113,7 +113,10 @@ def get_starters_with_status(user_id, force_refresh=False):
             league_settings, rosters = settings_future.result(), rosters_future.result()
         
         if not league_settings or not rosters: continue
-            
+        if not league.get('status') == 'in_season': continue  # Apenas ligas na temporada   
+        # if league_settings.get('best_ball') is None or league_settings.get('best_ball') != 0: continue #remove ligas best ball
+        
+
         roster_positions = league_settings.get('roster_positions', [])
         league_issues, total_issues = [], 0
         user_rosters = [r for r in rosters if r.get('owner_id') == user_id]

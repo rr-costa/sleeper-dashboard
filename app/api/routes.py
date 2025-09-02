@@ -92,10 +92,17 @@ def search_players():
         results.append({
             'id': player_id, 'name': full_name, 'positions': player_positions,
             'status': player.get('status', 'Active'),
-            'status_abbr': current_app.config['STATUS_CONFIG'].get(player.get('status'), {}).get('abbr', '')
+            'status_abbr': current_app.config['STATUS_CONFIG'].get(player.get('status'), {}).get('abbr', ''),
+            'depth_chart_order': player.get('depth_chart_order')  # Adicionar esta propriedade
         })
 
-    return jsonify(sorted(results, key=lambda x: x['name']))
+    # Ordenar primeiro por depth_chart_order (None vai para o final) e depois por nome
+    results.sort(key=lambda x: (
+        x['depth_chart_order'] if x['depth_chart_order'] is not None else float('inf'),
+        x['name']
+    ))
+    
+    return jsonify(results)
 
 @api.route('/player-details')
 @utils.login_required
