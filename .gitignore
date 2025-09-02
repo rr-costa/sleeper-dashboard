@@ -6,4 +6,4 @@ __pycache__/
 .idea/
 .cache/
 *.log
-.DS_Store
+.DS_Storecache/access_log.json
