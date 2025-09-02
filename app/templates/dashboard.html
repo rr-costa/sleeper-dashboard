@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Fantasy Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        /* ESTILO ATUALIZADO PARA O TÍTULO */
+        .header-left h1 {
+            font-family: 'Arial Black', 'Impact', sans-serif;
+            font-size: 2.8rem;
+            color: #013369; /* Azul principal da NFL */
+            letter-spacing: -1px;
+            position: relative;
+            display: inline-block;
+            margin: 0;
+            padding: 0.5rem 1.5rem;
+        }
+
+        .header-left h1::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        tatus-group {
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .league-header, .group-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .league-info, .group-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .badge {
+            background-color: #4a6cf7;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .league-content, .group-content {
+            padding: 1rem;
+        }
+        
+        .player-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .player-card:last-child {
+            border-bottom: none;
+        }
+        
+        .player-info {
+            flex-grow: 1;
+        }
+        
+        .status-tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-tag.out { background-color: #ff6b6b; color: white; }
+        .status-tag.doubtful { background-color: #ff9e6b; color: white; }
+        .status-tag.questionable { background-color: #ffd166; color: #333; }
+        .status-tag.probable { background-color: #8ac926; color: white; }
+        .status-tag.ir { background-color: #6a6a6a; color: white; }
+        .status-tag.suspended { background-color: #5a189a; color: white; }
+        .status-tag.pup { background-color: #4361ee; color: white; }
+        
+        .position-tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .position-filters {
+            margin-bottom: 1.5rem;
+        }
+        
+        .positions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .position-filter {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .position-filter:hover {
+            background: #e9ecef;
+        }
+        
+        .position-filter input {
+            margin-right: 0.5rem;
+        }
+        
+        .suggestions {
+            position: absolute;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .suggestion-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .no-issues {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            margin-top: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .no-issues .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .top-player-card {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .player-leagues {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .league-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .league-item:last-child {
+            border-bottom: none;
+        }
+
+        .more-leagues {
+            color: #4a6cf7;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .extra-leagues {
+            margin-top: 0.5rem;
+        }
+        
+        /* === CSS ATUALIZADO PARA O CARD DE BUSCA === */
+        #search-results {
+            background: transparent !important;
+            padding: 0;
+            margin-top: 1rem;
+        }
+
+        .player-search-section .top-player-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 45%; /* Máximo de largura */
+            min-width: 280px;   /* Largura mínima para não quebrar */
+            width: auto;        /* Ajusta automaticamente */
+        }
+        
+        .player-search-section .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .player-search-section .player-status {
+            color: #6c757d;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .player-search-section .player-leagues {
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+        }
+        
+        .player-search-section .league-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .player-search-section .league-item:last-child {
+            border-bottom: none;
+        }
+        
+        .player-search-section .status-tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        /* Estilo responsivo para telas menores */
+        @media (max-width: 768px) {
+            .player-search-section .top-player-card {
+                max-width: 100%;
+            }
+        }
+        
+        /* === TELA DE LOADING INICIAL === */
+        .app-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        
+        .app-loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4a6cf7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-loading" class="app-loading">
+        <div class="app-loading-spinner"></div>
+        <p>Loading Fantasy Dashboard...</p>
+    </div>
+    
+    <div id="app-content" style="display:none">
+        <header>
+            <div class="header-left">
+                <h1>NFL Fantasy Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <span class="username">{{ username }}</span>
+                <a href="#" id="logout-link" class="btn-secondary">Sign Out</a>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="status-player">Status Player</button>
+            <button class="tab-btn" data-tab="find-player">Find for Player</button>
+        </nav>
+
+        <main>
+            <!-- Status Player Tab -->
+            <div id="status-player" class="tab-content active">
+                <div class="status-header">
+                    <h2>Player Status</h2>
+                    <button id="reload-btn" class="btn-primary">↻ Reload</button>
+                </div>
+                <p>List of your starting players with non-Active status</p>
+                
+                <div id="no-issues-message" class="no-issues" style="display: none;">
+                    <div class="icon">🎉</div>
+                    <h3>Your leagues are ready for this week!</h3>
+                    <p>Enjoy the games!</p>
+                </div>
+                
+                <div id="leagues-container" class="leagues-container"></div>
+            </div>
+
+            <!-- Find for Player Tab -->
+            <div id="find-player" class="tab-content">
+                <div class="find-header">
+                    <h2>Find for Player</h2>
+                    <button id="refresh-find-btn" class="btn-primary">↻ Refresh</button>
+                </div>
+                
+                <!-- Top 6 Players -->
+                <section class="top-players-section">
+                    <h3>Your Top 6 Players</h3>
+                    <div id="top-players-container" class="top-players">
+                        <div class="loading">Loading top players...</div>
+                    </div>
+                </section>
+                
+                <!-- Player Search -->
+                <section class="player-search-section">
+                    <h3>Search Player</h3>
+                    
+                    <!-- Position Filters -->
+                    <div class="position-filters">
+                        <h4>Filter by Position:</h4>
+                        <div class="positions-grid" id="positions-container">
+                            <!-- Positions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Search Box -->
+                    <div class="search-box">
+                        <input type="text" id="player-search-input" placeholder="Enter player name (min 3 characters)">
+                        <div id="search-suggestions" class="suggestions"></div>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="search-results" class="search-results">
+                        <div class="info-message">Search for a player to see results</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+        <!-- Modal de Confirmação de Logout -->
+        <div id="logout-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>Confirm Logout</h3>
+                <p>Are you sure you want to sign out?</p>
+                <div class="modal-buttons">
+                    <button id="cancel-logout" class="btn-secondary">Cancel</button>
+                    <button id="confirm-logout" class="btn-primary">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="kofi-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;">
+        <div style="background:white;padding:30px;border-radius:10px;text-align:center;max-width:500px;width:90%;position:relative;">
+            <h3>Apoie o projeto!</h3>
+            <p>Este dashboard é gratuito, mas seu apoio ajuda a mantê-lo!</p>
+            
+            <!-- Botão de Apoio CORRIGIDO -->
+            <button id="kofi-support" style="display:inline-flex;align-items:center;background:#29ABE0;color:white;padding:12px 24px;border-radius:5px;text-decoration:none;font-weight:bold;margin:15px 0;border:none;cursor:pointer;">
+                <img src="../static/buymetd.png" 
+                style="height:20px;margin-right:10px;">
+                Throw me a TD!
+            </button>
+            
+            <p style="font-size:0.9em;color:#777;">Você será redirecionado para uma página segura</p>
+            
+            <!-- Botão Fechar -->
+            <button id="kofi-close" style="background:none;border:none;color:#aaa;cursor:pointer;margin-top:10px;">
+                Fica para a próxima
+            </button>
+        </div>
+    </div>
+    <a href="https://ko-fi.com/sleeperdashboard" target="_blank" id="kofi-float"
+        style="position:fixed;bottom:20px;right:20px;z-index:1000;">
+        <img src="../static/buymetd.png" 
+                style="height:30px;margin-right:5px;"> Throw me a TD!
+    </a>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
