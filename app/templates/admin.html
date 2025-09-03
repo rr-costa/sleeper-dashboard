@@ -78,18 +78,11 @@
                         <tbody id="repeated-logins-body"></tbody>
                     </table>
                 </div>
-                <div class="report-card">
-                    <h3>Top 5 Horários de Acesso</h3>
-                    <table class="report-table">
-                        <thead><tr><th>Faixa de Horário</th><th>Acessos</th></tr></thead>
-                        <tbody id="top-hours-body"></tbody>
-                    </table>
-                </div>
             </div>
 
             <div class="admin-actions">
-                <button id="clear-log-btn" class="btn btn-danger">Limpar Registros</button>
-                <button id="logout-btn" class="btn btn-primary">Sair</button>
+                <button class="btn btn-danger" onclick="clearAccessLog()">Limpar Registros</button>
+                <button class="btn btn-primary" onclick="adminLogout()">Sair</button>
             </div>
             
             <div id="access-log-container">

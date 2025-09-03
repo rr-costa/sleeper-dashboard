@@ -1,6 +1,7 @@
-export async function fetchPlayerStatus(forceRefresh = false) {
+export async function fetchPlayerStatus(forceRefresh = false, showBestBall = false) {
     const endpoint = forceRefresh ? '/api/refresh-league-status' : '/api/player-status';
-    const response = await fetch(endpoint);
+    const url = `${endpoint}?showBestBall=${showBestBall}`;
+    const response = await fetch(url);
     if (!response.ok) throw new Error(`Server error: ${response.status}`);
     return await response.json();
 }
@@ -22,6 +23,15 @@ export async function searchPlayers(query, positions) {
 export async function fetchPlayerDetails(playerName) {
     const params = new URLSearchParams({ name: playerName });
     const response = await fetch(`/api/player-details?${params}`);
-    if (!response.ok) throw new Error(`Error: ${response.status}`);
-    return await response.json();
+    if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    // Garantir que temos um nome válido no retorno
+    if (data && !data.player_name && data.name) {
+        data.player_name = data.name;
+    }
+    
+    return data;
 }
