@@ -11,7 +11,6 @@ export function createPlayerCardComponent(playerData) {
 
     const card = document.createElement('div');
     card.className = 'top-player-card';
-
     card.innerHTML = `
         <div class="player-header">
             <h4>${playerName}</h4>

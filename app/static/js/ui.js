@@ -7,7 +7,7 @@ const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DL', 'LB', 'DB'];
 const STATUS_ORDER = { 'PUP': 0, 'IR': 1, 'Suspended': 2, 'OUT': 3, 'Doubtful': 4, 'Questionable': 5, 'Probable': 6 };
 
 // --- Aba "Status Player" ---
-export async function loadPlayerStatus(forceRefresh = false) {
+export async function loadPlayerStatus(forceRefresh = false, showBestBall = false) {
     const container = document.getElementById('leagues-container');
     const noIssues = document.getElementById('no-issues-message');
     const reloadBtn = document.getElementById('reload-btn');
@@ -17,7 +17,7 @@ export async function loadPlayerStatus(forceRefresh = false) {
     container.innerHTML = '<div class="loading">Loading player status...</div>';
     
     try {
-        const leagues = await fetchPlayerStatus(forceRefresh);
+        const leagues = await fetchPlayerStatus(forceRefresh, showBestBall);
         noIssues.style.display = Object.keys(leagues).length === 0 ? 'block' : 'none';
         container.innerHTML = '';
         
@@ -150,13 +150,24 @@ async function showPlayerSearchResults(player) {
     resultsContainer.innerHTML = '<div class="loading">Searching player...</div>';
     try {
         const data = await fetchPlayerDetails(player.name);
-        if (!data.leagues || data.leagues.length === 0) {
-            resultsContainer.innerHTML = `<div class="no-results">${player.name} is not on any of your teams.</div>`;
+        
+         // Verificar se temos dados válidos
+        if (!data || data.error) {
+            resultsContainer.innerHTML = `<div class="no-results">${player.name} not found or error: ${data?.error || 'Unknown error'}</div>`;
             return;
         }
-        const card = createPlayerCardComponent(data);
+        // Criar o card do jogador com os dados corretos
+        const cardData = {
+            playerName: player.name,
+            leagues: data.leagues,
+            position: data.position || '?',
+            injuryStatus: data.injury_status || 'Active'
+        };
+
+        const card = createPlayerCardComponent(cardData);
         resultsContainer.innerHTML = '';
         resultsContainer.appendChild(card);
+
     } catch (error) {
         resultsContainer.innerHTML = `<div class="error"><p>Error: ${error.message}</p></div>`;
     }

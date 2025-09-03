@@ -9,6 +9,8 @@ function setupTabs() {
             document.getElementById(tabId).classList.add('active');
             if (tabId === 'find-player') {
                 initFindForPlayerTab();
+            } else if (tabId === 'status-player') {
+                loadPlayerStatusWithToggle(); // Carrega com as configurações atuais do toggle
             }
         });
     });
@@ -44,8 +46,28 @@ function setupKofiModal() {
     });
 }
 
+function setupBestBallToggle() {
+    const bestballToggle = document.getElementById('bestball-toggle');
+    if (bestballToggle) {
+        bestballToggle.addEventListener('change', () => {
+            loadPlayerStatusWithToggle();
+        });
+    }
+}
+
+function loadPlayerStatusWithToggle() {
+    const bestballToggle = document.getElementById('bestball-toggle');
+    const showBestBall = bestballToggle ? bestballToggle.checked : false;
+    loadPlayerStatus(false, showBestBall);
+}
+
 function addEventListeners() {
-    document.getElementById('reload-btn').addEventListener('click', () => loadPlayerStatus(true));
+    document.getElementById('reload-btn').addEventListener('click', () => {
+        const bestballToggle = document.getElementById('bestball-toggle');
+        const showBestBall = bestballToggle ? bestballToggle.checked : false;
+        loadPlayerStatus(true, showBestBall);
+    });
+    
     document.getElementById('refresh-find-btn').addEventListener('click', initFindForPlayerTab);
 
     const searchInput = document.getElementById('player-search-input');
@@ -59,9 +81,10 @@ async function initializeApp() {
     try {
         setupTabs();
         setupLogout();
+        setupBestBallToggle(); // Configurar o toggle
         addEventListeners();
         
-        await loadPlayerStatus(); // Carrega a aba principal por padrão
+        await loadPlayerStatusWithToggle(); // Carrega a aba principal com as configurações do toggle
         
         document.getElementById('app-loading').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';

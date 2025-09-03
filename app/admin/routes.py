@@ -10,28 +10,25 @@ admin = Blueprint('admin', __name__)
 def process_access_logs(logs):
     """Processa os dados brutos de log para extrair relatórios agregados."""
     if not logs:
-        return {
-            'raw_logs': [], 
-            'unique_by_day': [], 
-            'repeated_logins': [],
-            'top_access_hours': []  # Adicionado
-        }
+        return {'raw_logs': [], 'unique_by_day': [], 'repeated_logins': []}
 
     # 1. Relatório de logins únicos por dia
     logins_by_date = {}
     for entry in logs:
         try:
+            # Extrai apenas a parte da data (YYYY-MM-DD) do timestamp
             date_str = datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
             if date_str not in logins_by_date:
                 logins_by_date[date_str] = set()
             logins_by_date[date_str].add(entry['username'])
         except (ValueError, KeyError):
-            continue
+            continue  # Pula entradas malformadas ou sem os campos necessários
 
     unique_logins_per_day = [
         {'date': date, 'unique_count': len(users)}
         for date, users in logins_by_date.items()
     ]
+    # Ordena por data, da mais recente para a mais antiga
     unique_logins_per_day.sort(key=lambda x: x['date'], reverse=True)
 
     # 2. Relatório de logins repetidos
@@ -40,31 +37,16 @@ def process_access_logs(logs):
         {'username': username, 'count': count}
         for username, count in username_counts.items() if count > 1
     ]
+    # Ordena por contagem, do mais frequente para o menos
     repeated_logins.sort(key=lambda x: x['count'], reverse=True)
 
-    # --- NOVA FUNCIONALIDADE: Top 5 Horários de Acesso ---
-    hour_counts = Counter()
-    for entry in logs:
-        try:
-            hour = datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S').strftime('%H')
-            hour_counts[hour] += 1
-        except (ValueError, KeyError):
-            continue
-            
-    top_hours = hour_counts.most_common(5)
-    top_access_hours = [
-        {'hour_range': f"{hour}:00 - {hour}:59", 'count': count}
-        for hour, count in top_hours
-    ]
-    # --- FIM DA NOVA FUNCIONALIDADE ---
-
+    # Ordena o log bruto por timestamp, do mais recente para o mais antigo
     logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
 
     return {
         'raw_logs': logs,
         'unique_by_day': unique_logins_per_day,
-        'repeated_logins': repeated_logins,
-        'top_access_hours': top_access_hours # Retorna os novos dados
+        'repeated_logins': repeated_logins
     }
 
 
@@ -99,6 +81,7 @@ def get_access_log():
             processed_data = process_access_logs(logs)
             return jsonify(processed_data)
 
+        # Retorna uma estrutura vazia se o arquivo de log não existir
         return jsonify(process_access_logs([]))
     except Exception as e:
         current_app.logger.error(f"Erro ao ler e processar log de acessos: {str(e)}")
