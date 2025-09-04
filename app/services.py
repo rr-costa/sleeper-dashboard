@@ -85,7 +85,13 @@ def _process_player_status(player_id, all_players):
         return {'full_name': f'Unknown Player ({player_id})', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
 
     try:
-        full_name = player.get('full_name') or f"Player_{player_id[:6]}"
+        full_name = player.get('full_name')
+        if not full_name:
+            # Construir nome se full_name não estiver disponível
+            first_name = player.get('first_name', '')
+            last_name = player.get('last_name', '')
+            full_name = f"{first_name} {last_name}".strip() or f"Player_{player_id[:6]}"
+        
         position = player.get('position') or '?'
         team = player.get('team') or '?'
         injury_status = player.get('injury_status') or player.get('status') or 'Active'
@@ -97,7 +103,7 @@ def _process_player_status(player_id, all_players):
         current_app.logger.warning(f"Error processing player {player_id}: {str(e)}")
         return {'full_name': f'Player_{player_id[:6]}', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
 
-def get_starters_with_status(user_id, force_refresh=False):
+def get_starters_with_status(user_id, force_refresh=False, show_best_ball=False):
     if force_refresh:
         utils.LEAGUE_CACHE.clear()
         
@@ -114,7 +120,7 @@ def get_starters_with_status(user_id, force_refresh=False):
         
         if not league_settings or not rosters: continue
         if not league.get('status') == 'in_season': continue  # Apenas ligas na temporada   
-        # if league_settings.get('best_ball') is None or league_settings.get('best_ball') != 0: continue #remove ligas best ball
+        if not show_best_ball and  not league.get('settings', {}).get('best_ball') == 0: continue #remove ligas best ball
         
 
         roster_positions = league_settings.get('roster_positions', [])

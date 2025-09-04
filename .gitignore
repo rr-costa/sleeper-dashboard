@@ -4,6 +4,6 @@ __pycache__/
 *.pyc
 .vscode/
 .idea/
-.cache/
+cache/
 *.log
 .*.json

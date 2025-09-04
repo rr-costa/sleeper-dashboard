@@ -8,14 +8,16 @@ api = Blueprint('api', __name__)
 @utils.login_required
 def player_status():
     user_id = session['user_id']
-    status_data = services.get_starters_with_status(user_id)
+    show_best_ball = request.args.get('showBestBall', 'false').lower() == 'true'
+    status_data = services.get_starters_with_status(user_id,force_refresh=False, show_best_ball=show_best_ball)
     return jsonify(status_data)
 
 @api.route('/refresh-league-status')
 @utils.login_required
 def refresh_league_status():
     user_id = session['user_id']
-    status_data = services.get_starters_with_status(user_id, force_refresh=True)
+    show_best_ball = request.args.get('showBestBall', 'false').lower() == 'true'
+    status_data = services.get_starters_with_status(user_id, force_refresh=True,show_best_ball=show_best_ball)
     return jsonify(status_data)
 
 @api.route('/cache-info')
@@ -82,20 +84,41 @@ def search_players():
     all_players = services.get_all_players()
     results = []
     
+       
     for player_id, player in all_players.items():
-        full_name = player.get('full_name') or f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()
-        if not full_name or (query and query not in full_name.lower()): continue
+        # Debug: verificar a estrutura de cada jogador
+        full_name = player.get('full_name')
+        if not full_name:
+            first_name = player.get('first_name', '')
+            last_name = player.get('last_name', '')
+            full_name = f"{first_name} {last_name}".strip()
+        
+        # Se ainda não tiver nome, pular este jogador
+        if not full_name:
+            current_app.logger.debug(f"Player {player_id} has no name data: {player}")
+            continue
+            
+        # Verificar se a query corresponde ao nome
+        if query and query not in full_name.lower(): 
+            continue
         
         player_positions = player.get('fantasy_positions') or []
-        if not any(pos in positions for pos in player_positions): continue
+        if not any(pos in positions for pos in player_positions): 
+            continue
+        
+       
         
         results.append({
-            'id': player_id, 'name': full_name, 'positions': player_positions,
+            'id': player_id, 
+            'name': full_name,
+            'positions': player_positions,
             'status': player.get('status', 'Active'),
             'status_abbr': current_app.config['STATUS_CONFIG'].get(player.get('status'), {}).get('abbr', ''),
-            'depth_chart_order': player.get('depth_chart_order')  # Adicionar esta propriedade
+            'depth_chart_order': player.get('depth_chart_order')
         })
 
+    current_app.logger.debug(f"Found {len(results)} results")
+    
     # Ordenar primeiro por depth_chart_order (None vai para o final) e depois por nome
     results.sort(key=lambda x: (
         x['depth_chart_order'] if x['depth_chart_order'] is not None else float('inf'),
@@ -107,16 +130,31 @@ def search_players():
 @api.route('/player-details')
 @utils.login_required
 def player_details():
+
+    
     player_name = request.args.get('name', '').strip()
     if not player_name: return jsonify(error='Invalid player name'), 400
 
     user_id = session['user_id']
     leagues = services.get_cached_leagues(user_id) or []
     all_players = services.get_all_players() or {}
-
+    
     player_id, player_data = None, None
     for pid, pdata in all_players.items():
-        full_name = pdata.get('full_name') or f"{pdata.get('first_name', '')} {pdata.get('last_name', '')}".strip()
+        full_name = pdata.get('full_name')
+        if not full_name:
+            first_name = pdata.get('first_name', '')
+            last_name = pdata.get('last_name', '')
+            full_name = f"{first_name} {last_name}".strip()
+
+         # Debug: verificar o que está sendo adicionado
+        
+
+        # Se ainda não tiver nome, pular este jogador
+        if not full_name:
+            current_app.logger.debug(f"Player {player_id} has no name data: {pdata}")
+            continue
+
         if full_name.lower() == player_name.lower():
             player_id, player_data = pid, pdata
             break
