@@ -10,7 +10,12 @@ admin = Blueprint('admin', __name__)
 def process_access_logs(logs):
     """Processa os dados brutos de log para extrair relatórios agregados."""
     if not logs:
-        return {'raw_logs': [], 'unique_by_day': [], 'repeated_logins': []}
+        return {
+            'raw_logs': [], 
+            'unique_by_day': [], 
+            'repeated_logins': [],
+            'top_access_hours': []  # Adicionado
+        }
 
     # 1. Relatório de logins únicos por dia
     logins_by_date = {}
@@ -40,13 +45,30 @@ def process_access_logs(logs):
     # Ordena por contagem, do mais frequente para o menos
     repeated_logins.sort(key=lambda x: x['count'], reverse=True)
 
+     # --- NOVA FUNCIONALIDADE: Top 5 Horários de Acesso ---
+    hour_counts = Counter()
+    for entry in logs:
+        try:
+            hour = datetime.strptime(entry['timestamp'], '%Y-%m-%d %H:%M:%S').strftime('%H')
+            hour_counts[hour] += 1
+        except (ValueError, KeyError):
+            continue
+
+    top_hours = hour_counts.most_common(5)
+    top_access_hours = [
+        {'hour_range': f"{hour}:00 - {hour}:59", 'count': count}
+        for hour, count in top_hours
+    ]
+    # --- FIM DA NOVA FUNCIONALIDADE ---
+
     # Ordena o log bruto por timestamp, do mais recente para o mais antigo
     logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
 
     return {
         'raw_logs': logs,
         'unique_by_day': unique_logins_per_day,
-        'repeated_logins': repeated_logins
+        'repeated_logins': repeated_logins,
+        'top_access_hours': top_access_hours # Retorna os novos dados
     }
 
 

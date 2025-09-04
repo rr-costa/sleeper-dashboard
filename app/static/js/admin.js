@@ -56,6 +56,12 @@ function loadAccessLog() {
             <td>${entry.username}</td>
             <td>${entry.count}</td>
         `, 2);
+
+        // NOVA CHAMADA PARA PREENCHER A TABELA DE HORÁRIOS
+        populateTable('top-hours-body', data.top_access_hours, entry => `
+            <td>${entry.hour_range}</td>
+            <td>${entry.count}</td>
+        `, 2);
     })
     .catch(error => {
         if (error.message !== 'Não autorizado') {
@@ -132,7 +138,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginButton) {
         loginButton.addEventListener('click', adminLogin);
     }
-    
+     // Botão para Limpar Registros
+    const clearButton = document.getElementById('clear-log-btn');
+    if (clearButton) {
+        clearButton.addEventListener('click', clearAccessLog);
+    }
+
+    // Botão para Sair (Logout)
+    const logoutButton = document.getElementById('logout-btn');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', adminLogout);
+    }
     fetch('/admin/access-log')
     .then(response => {
         if (response.ok) return response.json();
