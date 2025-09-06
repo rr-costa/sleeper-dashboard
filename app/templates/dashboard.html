@@ -386,6 +386,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .info-message-box {
+            background-color: #eef1ff; /* Um azul claro suave */
+            color: #3a56d4;
+            border: 1px solid #d6dfff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+        .info-message-box strong {
+            color: #013369;
+        }
     </style>
 </head>
 <body>
@@ -428,7 +442,7 @@
                 </div>
 
                 <p>List of your starting players with non-Active status.</p>
-                
+                <p><strong>Heads up:</strong> Changes made on Sleeper (like player swaps) may take up to 5 minutes to be reflected here.</p>
                 <div id="no-issues-message" class="no-issues" style="display: none;">
                     <div class="icon">🎉</div>
                     <h3>Your leagues are ready for this week!</h3>
