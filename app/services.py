@@ -2,18 +2,34 @@ import requests
 from flask import current_app
 from concurrent.futures import ThreadPoolExecutor
 from . import utils
+import time
+import logging
 
 # --- FUNÇÕES DE REQUEST À API SLEEPER ---
 def sleeper_request(url, timeout=10):
-    try:
-        response = requests.get(url, timeout=timeout)
-        if response.status_code == 200:
-            return response.json()
-        current_app.logger.warning(f"Request failed: {url} - Status {response.status_code}")
-        return None
-    except Exception as e:
-        current_app.logger.error(f"Request error: {url} - {str(e)}")
-        return None
+    """
+    Faz um pedido à API do Sleeper com lógica de retry.
+    Tenta até 3 vezes com um segundo de espera entre as falhas.
+    """
+    for attempt in range(3):
+        try:
+            response = requests.get(url, timeout=timeout)
+            if response.status_code == 200:
+                return response.json()
+            
+            # Se o status não for 200, regista o aviso e tenta novamente
+            logging.warning(f"Request failed on attempt {attempt + 1}/3: {url} - Status {response.status_code}")
+
+        except requests.exceptions.RequestException as e:
+            # Se for um erro de rede/timeout, regista o erro e tenta novamente
+            logging.error(f"Request error on attempt {attempt + 1}/3: {url} - {str(e)}")
+        
+        # Espera 1 segundo antes da próxima tentativa
+        time.sleep(1)
+        
+    # Se todas as 3 tentativas falharem, retorna None
+    logging.error(f"All 3 attempts failed for URL: {url}")
+    return None
 
 def get_user_id(username):
     user_data = sleeper_request(f'https://api.sleeper.app/v1/user/{username}', timeout=5)
@@ -28,7 +44,7 @@ def get_all_players():
             
         players = sleeper_request(f"https://api.sleeper.app/v1/players/{current_app.config['SPORT']}", timeout=15)
         if not players:
-            current_app.logger.warning("Resposta vazia da API de jogadores")
+            logging.warning("Resposta vazia da API de jogadores")
             return {}
             
         active_players = {
@@ -38,7 +54,7 @@ def get_all_players():
         utils.save_players_to_disk(active_players)
         return active_players
     except Exception as e:
-        current_app.logger.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
+        logging.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
         return {}
 
 def get_cached_leagues(user_id):
@@ -100,7 +116,7 @@ def _process_player_status(player_id, all_players):
         status = injury_status if injury_status != 'Active' else None
         return safe_player, status
     except Exception as e:
-        current_app.logger.warning(f"Error processing player {player_id}: {str(e)}")
+        logging.warning(f"Error processing player {player_id}: {str(e)}")
         return {'full_name': f'Player_{player_id[:6]}', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
 
 def get_starters_with_status(user_id, force_refresh=False, show_best_ball=False):
@@ -160,7 +176,11 @@ def get_roster_position(player_id, roster, league_id):
     if player_id in starters:
         try:
             idx = starters.index(player_id)
-            roster_positions = get_league_settings(league_id).get('roster_positions', [])
-            return roster_positions[idx] if idx < len(roster_positions) else "ST"
+            # Adicionada verificação para o caso de settings ser None
+            settings = get_league_settings(league_id)
+            if settings:
+                roster_positions = settings.get('roster_positions', [])
+                return roster_positions[idx] if idx < len(roster_positions) else "ST"
+            return "ST"  # Retorna "ST" como fallback se as settings falharem
         except (ValueError, IndexError): return "ST"
     return "BN"

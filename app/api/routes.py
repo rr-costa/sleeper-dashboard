@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Blueprint, jsonify, session, request, current_app
 from app import services, utils
 
@@ -106,8 +107,6 @@ def search_players():
         if not any(pos in positions for pos in player_positions): 
             continue
         
-       
-        
         results.append({
             'id': player_id, 
             'name': full_name,
@@ -180,3 +179,22 @@ def player_details():
         'injury_status': utils.format_status(player_data.get('injury_status') or 'Active'),
         'leagues': leagues_with_player
     })
+
+@api.route('/refresh-players-cache')
+@utils.login_required
+def refresh_players_cache():
+    """Força a atualização do cache de jogadores."""
+    try:
+        players_cache_file = current_app.config['PLAYERS_CACHE_FILE']
+        
+        # 1. Apaga o ficheiro de cache antigo, se existir
+        if os.path.exists(players_cache_file):
+            os.remove(players_cache_file)
+            
+        # 2. Chama a função de serviço para buscar e recriar o cache
+        services.get_all_players()
+        
+        return jsonify(success=True, message='Cache de jogadores atualizado com sucesso!')
+    except Exception as e:
+        current_app.logger.error(f"Erro ao forçar a atualização do cache de jogadores: {str(e)}")
+        return jsonify(success=False, message='Ocorreu um erro ao atualizar o cache.'), 500
