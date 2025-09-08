@@ -35,6 +35,8 @@ def process_access_logs(logs):
     ]
     # Ordena por data, da mais recente para a mais antiga
     unique_logins_per_day.sort(key=lambda x: x['date'], reverse=True)
+    unique_logins_per_day = unique_logins_per_day[:5]
+
 
     # 2. Relatório de logins repetidos
     username_counts = Counter(entry['username'] for entry in logs if 'username' in entry)
@@ -44,6 +46,7 @@ def process_access_logs(logs):
     ]
     # Ordena por contagem, do mais frequente para o menos
     repeated_logins.sort(key=lambda x: x['count'], reverse=True)
+    repeated_logins = repeated_logins[:5]
 
      # --- NOVA FUNCIONALIDADE: Top 5 Horários de Acesso ---
     hour_counts = Counter()
