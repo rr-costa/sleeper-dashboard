@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from . import utils
 import time
 import logging
+from collections import defaultdict
 
 # --- FUNÇÕES DE REQUEST À API SLEEPER ---
 def sleeper_request(url, timeout=10):
@@ -184,3 +185,60 @@ def get_roster_position(player_id, roster, league_id):
             return "ST"  # Retorna "ST" como fallback se as settings falharem
         except (ValueError, IndexError): return "ST"
     return "BN"
+
+def get_nfl_teams():
+    """Busca e retorna uma lista de todos os times da NFL a partir do cache de jogadores."""
+    all_players = get_all_players()
+    if not all_players:
+        return []
+    
+    teams = set()
+    for player in all_players.values():
+        if player.get('team'):
+            teams.add(player['team'])
+            
+    return sorted(list(teams))
+
+def get_nfl_depth_chart(team_abbr, league_id=None):
+    """
+    Monta o depth chart para um time da NFL e enriquece com dados de uma liga específica.
+    """
+    all_players = get_all_players()
+    if not all_players:
+        return {}
+
+    # 1. Filtra jogadores do time selecionado
+    team_players = [p for p in all_players.values() if p.get('team') == team_abbr and p.get('active')]
+
+    # 2. Obtém dados da liga, se um league_id for fornecido
+    league_players = {}
+    if league_id:
+        rosters = get_cached_rosters(league_id)
+        if rosters:
+            for roster in rosters:
+                owner_id = roster.get('owner_id')
+                for player_id in roster.get('players', []):
+                    league_players[player_id] = owner_id
+
+    # 3. Agrupa jogadores por posição e enriquece com dados da liga
+    depth_chart = defaultdict(list)
+    for player in team_players:
+        pos = player.get('depth_chart_position') or player.get('position')
+        if not pos:
+            continue
+
+        player_id = player.get('player_id')
+        owner_id = league_players.get(player_id) if league_id else None
+
+        depth_chart[pos].append({
+            'name': player.get('full_name', f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()),
+            'order': player.get('depth_chart_order'),
+            'injury': player.get('injury_status'),
+            'owner_id': owner_id
+        })
+    
+    # 4. Ordena os jogadores dentro de cada posição
+    for pos in depth_chart:
+        depth_chart[pos].sort(key=lambda x: (x['order'] if x['order'] is not None else float('inf')))
+        
+    return depth_chart

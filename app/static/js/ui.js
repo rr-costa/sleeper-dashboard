@@ -1,5 +1,5 @@
 import { createPlayerCardComponent, createLeagueElement } from './components.js';
-import { fetchPlayerStatus, fetchTopPlayers, fetchPlayerDetails, searchPlayers } from './api.js';
+import { fetchPlayerStatus, fetchTopPlayers, fetchPlayerDetails, searchPlayers, fetchNflTeams, fetchDepthChart } from './api.js';
 
 // Estado da UI
 const appState = { expandedState: {} };
@@ -180,4 +180,122 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
+}
+
+// --- Aba "Depth Chart" ---
+
+const POSICAO_ORDEM = { 'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4, 'DL': 5, 'LB': 6, 'DB': 7, 'K': 8 };
+
+export async function initDepthChartTab() {
+    const teamSelect = document.getElementById('select-nfl-team');
+    
+    // Só carrega os times se a lista estiver vazia
+    if (teamSelect.options.length <= 1) {
+        try {
+            const teams = await fetchNflTeams();
+            teams.forEach(team => {
+                const option = new Option(team, team);
+                teamSelect.add(option);
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    
+    // Adiciona as ligas do usuário ao select de contexto
+    populateLeagueContextSelect();
+
+    // Adiciona os event listeners
+    const leagueSelect = document.getElementById('select-league-context');
+    teamSelect.addEventListener('change', handleDepthChartSelection);
+    leagueSelect.addEventListener('change', handleDepthChartSelection);
+}
+
+async function populateLeagueContextSelect() {
+    const leagueSelect = document.getElementById('select-league-context');
+    if (leagueSelect.options.length > 1) return; // Já populado
+    
+    try {
+        // Usa a mesma API da primeira aba para pegar as ligas do usuário
+        const leagues = await fetchPlayerStatus();
+        for (const leagueId in leagues) {
+            const league = leagues[leagueId];
+            const option = new Option(league.name, leagueId);
+            leagueSelect.add(option);
+        }
+    } catch (error) {
+        console.error("Erro ao carregar ligas para o contexto:", error);
+    }
+}
+
+async function handleDepthChartSelection() {
+    const teamSelect = document.getElementById('select-nfl-team').value;
+    const leagueSelect = document.getElementById('select-league-context').value;
+    const container = document.getElementById('depth-chart-container');
+    const loading = document.getElementById('depth-chart-loading');
+
+    if (!teamSelect) {
+        container.classList.add('hidden');
+        return;
+    }
+    
+    loading.classList.remove('hidden');
+    container.classList.add('hidden');
+
+    try {
+        const data = await fetchDepthChart(teamSelect, leagueSelect);
+        renderDepthChart(data.chart, data.current_user_id, teamSelect);
+        container.classList.remove('hidden');
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = `<div class="error"><p>${error.message}</p></div>`;
+        container.classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+function renderDepthChart(chartData, currentUserId, teamName) {
+    const header = document.getElementById('depth-chart-header');
+    const tableContainer = document.getElementById('depth-chart-table-container');
+    
+    header.textContent = `Depth Chart - ${teamName}`;
+    
+    const posicoesOrdenadas = Object.keys(chartData).sort((a, b) => (POSICAO_ORDEM[a] || 99) - (POSICAO_ORDEM[b] || 99));
+
+    let tableHtml = `
+        <table class="min-w-full bg-white divide-y divide-gray-200">
+            <thead class="bg-gray-800">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Posição</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 1</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 2</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 3</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 4</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+    `;
+
+    posicoesOrdenadas.forEach(pos => {
+        const players = chartData[pos];
+        tableHtml += `<tr><td class="px-6 py-4 font-bold bg-gray-100">${pos}</td>`;
+        for (let i = 0; i < 4; i++) {
+            if (players[i]) {
+                const player = players[i];
+                let statusClass = 'text-gray-500'; // Free Agent
+                if (player.owner_id) {
+                    statusClass = player.owner_id === currentUserId ? 'text-green-600 font-semibold' : 'text-yellow-600';
+                }
+                const injuryStatus = player.injury ? `<span class="text-red-500 text-xs ml-1">(${player.injury})</span>` : '';
+                tableHtml += `<td class="px-6 py-4 whitespace-nowrap"><span class="${statusClass}">${player.name}</span>${injuryStatus}</td>`;
+            } else {
+                tableHtml += `<td class="px-6 py-4">-</td>`;
+            }
+        }
+        tableHtml += `</tr>`;
+    });
+
+    tableHtml += `</tbody></table>`;
+    tableContainer.innerHTML = tableHtml;
 }

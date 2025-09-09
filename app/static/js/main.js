@@ -1,4 +1,4 @@
-import { loadPlayerStatus, initFindForPlayerTab, updateSearchSuggestions } from './ui.js';
+import { loadPlayerStatus, initFindForPlayerTab, updateSearchSuggestions, initDepthChartTab } from './ui.js';
 
 function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(button => {
@@ -11,6 +11,8 @@ function setupTabs() {
                 initFindForPlayerTab();
             } else if (tabId === 'status-player') {
                 loadPlayerStatusWithToggle(); // Carrega com as configurações atuais do toggle
+            } else if (tabId === 'depth-chart') { 
+                initDepthChartTab();
             }
         });
     });
