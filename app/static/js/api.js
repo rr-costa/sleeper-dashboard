@@ -35,3 +35,18 @@ export async function fetchPlayerDetails(playerName) {
     
     return data;
 }
+export async function fetchNflTeams() {
+    const response = await fetch('/api/nfl-teams');
+    if (!response.ok) throw new Error('Failed to load NFL teams');
+    return await response.json();
+}
+
+export async function fetchDepthChart(teamAbbr, leagueId = null) {
+    let url = `/api/depth-chart/${teamAbbr}`;
+    if (leagueId) {
+        url += `?league_id=${leagueId}`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to load depth chart');
+    return await response.json();
+}
