@@ -16,7 +16,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            if request.accept_mimetypes.accept_json:
+            # Lógica corrigida: verifica o blueprint da rota
+            if request.blueprint == 'api':
                 return jsonify({'error': 'Unauthorized'}), 401
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
