@@ -212,3 +212,18 @@ def depth_chart(team_abbr):
     chart_data = services.get_nfl_depth_chart(team_abbr, league_id)
     # Passa o user_id para o frontend saber quem é o "dono" do time
     return jsonify({'chart': chart_data, 'current_user_id': session.get('user_id')})
+
+@api.route('/all-leagues')
+@utils.login_required
+def get_all_leagues():
+    """Retorna todas as ligas de um usuário para a temporada atual, sem filtros."""
+    user_id = session['user_id']
+    
+    # A função get_cached_leagues já busca todas as ligas do usuário para a temporada
+    leagues = services.get_cached_leagues(user_id)
+    
+    if leagues is None:
+        # Retorna uma lista vazia ou um erro se a busca falhar
+        return jsonify([])
+        
+    return jsonify(leagues)

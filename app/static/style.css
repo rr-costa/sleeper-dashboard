@@ -1197,3 +1197,120 @@ footer {
 #kofi-support:hover {
   background: #1c7aac !important;
 }
+/* --- Estilos para a Aba Depth Chart --- */
+
+/* Contenedor dos menus de seleção */
+.depth-chart-controls {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f8f9fa; /* Um cinza muito claro */
+    border-radius: 8px;
+    flex-wrap: wrap; /* Permite que os controlos quebrem em telas menores */
+}
+
+.control-group {
+    flex: 1;
+    min-width: 250px; /* Largura mínima para cada controlo */
+    display: flex;
+    flex-direction: column;
+}
+
+.control-group label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.control-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: white;
+}
+
+/* Tabela de Depth Chart */
+.depth-chart-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border-radius: 8px;
+    overflow: hidden; /* Garante que os cantos arredondados funcionem */
+}
+
+.depth-chart-table th,
+.depth-chart-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+/* Altere para isto: */
+.depth-chart-table thead {
+    background-color: var(--primary); /* Usa a cor azul principal do site */
+    color: white;
+}
+
+.depth-chart-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.depth-chart-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.depth-chart-table .position-cell {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+/* Classes de status dos jogadores */
+.status-free-agent {
+    color: #6c757d; /* Cinza */
+}
+
+.status-owned-by-user {
+    color: #28a745; /* Verde */
+    font-weight: bold;
+}
+
+.status-owned-by-other {
+    color: #ffc107; /* Amarelo/Âmbar */
+}
+
+.injury-status {
+    color: #dc3545; /* Vermelho */
+    font-size: 0.85em;
+    margin-left: 0.5rem;
+}
+
+#depth-chart-header {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Ocultar elementos */
+.hidden {
+    display: none;
+}
+/* Estilo para abas desabilitadas */
+.tab-btn:disabled {
+    cursor: not-allowed;
+    color: #a0aec0; /* Um tom de cinza claro */
+    background-color: #fdfdfd;
+}
+
+.tab-btn:disabled:hover {
+    color: #a0aec0; /* Garante que a cor não muda no hover */
+}
+
+/* Remove a barra azul indicadora da aba ativa quando desabilitada */
+.tab-btn:disabled::after {
+    background: none;
+}

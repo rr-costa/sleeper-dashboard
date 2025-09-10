@@ -495,34 +495,34 @@
             </div>
             
             <!-- Depth Chart Tab -->
-             <div id="depth-chart" class="tab-content">
-                <h2 class="text-2xl font-bold mb-4">NFL Team Depth Charts</h2>
+            <div id="depth-chart" class="tab-content">
+                <h2>NFL Team Depth Charts</h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                        <label for="select-nfl-team" class="block text-sm font-medium text-gray-700 mb-1">Time da NFL</label>
-                        <select id="select-nfl-team" class="w-full p-2 border border-gray-300 rounded-md">
+                <div class="depth-chart-controls">
+                    <div class="control-group">
+                        <label for="select-nfl-team">Time da NFL</label>
+                        <select id="select-nfl-team">
                             <option value="">Selecione um time</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="select-league-context" class="block text-sm font-medium text-gray-700 mb-1">Contexto da Liga (para ver donos)</label>
-                        <select id="select-league-context" class="w-full p-2 border border-gray-300 rounded-md">
+                    <div class="control-group">
+                        <label for="select-league-context">Contexto da Liga (para ver donos)</label>
+                        <select id="select-league-context">
                             <option value="">Nenhuma</option>
                         </select>
                     </div>
                 </div>
 
                 <div id="depth-chart-container" class="hidden">
-                    <h3 id="depth-chart-header" class="text-xl font-semibold mb-2"></h3>
-                    <div id="depth-chart-table-container" class="overflow-x-auto"></div>
+                    <h3 id="depth-chart-header"></h3>
+                    <div id="depth-chart-table-container"></div>
                 </div>
 
                 <div id="depth-chart-loading" class="text-center py-8 hidden">
                     <div class="app-loading-spinner mx-auto"></div>
                     <p class="mt-2 text-gray-600">Carregando Depth Chart...</p>
                 </div>
-            </div>
+            </div> 
         </main>
         <!-- Modal de Confirmação de Logout -->
         <div id="logout-modal" class="modal" style="display: none;">
