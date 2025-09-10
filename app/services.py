@@ -187,7 +187,7 @@ def get_roster_position(player_id, roster, league_id):
     return "BN"
 
 # Dicionário com o mapeamento de abreviação para nome completo do time.
-NFL_TEAMS_MAP = {
+"""NFL_TEAMS_MAP = {
     'ARI': 'Arizona Cardinals', 'ATL': 'Atlanta Falcons', 'BAL': 'Baltimore Ravens',
     'BUF': 'Buffalo Bills', 'CAR': 'Carolina Panthers', 'CHI': 'Chicago Bears',
     'CIN': 'Cincinnati Bengals', 'CLE': 'Cleveland Browns', 'DAL': 'Dallas Cowboys',
@@ -199,26 +199,68 @@ NFL_TEAMS_MAP = {
     'NYJ': 'New York Jets', 'PHI': 'Philadelphia Eagles', 'PIT': 'Pittsburgh Steelers',
     'SF': 'San Francisco 49ers', 'SEA': 'Seattle Seahawks', 'TB': 'Tampa Bay Buccaneers',
     'TEN': 'Tennessee Titans', 'WAS': 'Washington Commanders'
-}
+}"""
 
 def get_nfl_teams():
-    """Busca as abreviações dos times e retorna uma lista de dicionários com abreviação e nome completo."""
+    """
+    Constrói um dicionário de times da NFL a partir do cache de jogadores,
+    filtrando pelas unidades de defesa.
+
+    Retorna:
+        Um dicionário onde as chaves são as abreviações dos times e os
+        valores são os nomes completos.
+    """
+    all_players = get_all_players() # Sua função que já lê o players_cache.json
+    nfl_teams = {}
+
+    if not all_players:
+        return nfl_teams
+
+    for player_id, player_data in all_players.items():
+        # Verifica se a entrada corresponde a um time de defesa
+        if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
+            # Constrói o nome completo do time
+            full_name = f"{player_data['first_name']} {player_data['last_name']}"
+            # A abreviação do time está no player_id
+            team_abbr = player_id
+            nfl_teams[team_abbr] = full_name
+            
+    # Ordena o dicionário por nome do time para exibição na interface
+    sorted_teams = dict(sorted(nfl_teams.items(), key=lambda item: item[1]))
+    
+    return sorted_teams
+
+
+def get_nfl_teams():
+    """
+    Busca as abreviações dos times e retorna uma lista de dicionários 
+    com abreviação e nome completo, extraídos dinamicamente do cache de jogadores.
+    """
     all_players = get_all_players()
     if not all_players:
         return []
     
-    # Obtém um conjunto de abreviações únicas do cache de jogadores
-    team_abbrs = sorted(list({
-        player['team'] for player in all_players.values() if player.get('team')
-    }))
+    teams_list = []
+    seen_teams = set() # Usado para evitar duplicatas
+
+    for player_id, player_data in all_players.items():
+        # A lógica para identificar um time é a mesma
+        if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
+            
+            team_abbr = player_id
+            
+            # Evita adicionar o mesmo time duas vezes
+            if team_abbr not in seen_teams:
+                full_name = f"{player_data['first_name']} {player_data['last_name']}"
+                
+                # Adiciona no formato que o JavaScript espera: {'abbr': '...', 'name': '...'}
+                teams_list.append({'abbr': team_abbr, 'name': full_name})
+                seen_teams.add(team_abbr)
     
-    # Cria a lista de times com nome completo, usando o dicionário NFL_TEAMS_MAP
-    teams = [
-        {'abbr': abbr, 'name': NFL_TEAMS_MAP.get(abbr, abbr)}
-        for abbr in team_abbrs
-    ]
+    # Ordena a lista de times pelo nome completo
+    teams_list.sort(key=lambda x: x['name'])
     
-    return teams
+    return teams_list
 
 def get_nfl_depth_chart(team_abbr, league_id=None):
     """

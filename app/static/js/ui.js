@@ -12,7 +12,6 @@ export async function loadPlayerStatus(forceRefresh = false, showBestBall = fals
     const noIssues = document.getElementById('no-issues-message');
     const reloadBtn = document.getElementById('reload-btn');
     
-    // --- INÍCIO DA NOVA LÓGICA ---
     // Seleciona os botões das outras abas
     const findForPlayerTab = document.querySelector('.tab-btn[data-tab="find-player"]');
     const depthChartTab = document.querySelector('.tab-btn[data-tab="depth-chart"]');
@@ -21,7 +20,6 @@ export async function loadPlayerStatus(forceRefresh = false, showBestBall = fals
     reloadBtn.disabled = true;
     if (findForPlayerTab) findForPlayerTab.disabled = true;
     if (depthChartTab) depthChartTab.disabled = true;
-    // --- FIM DA NOVA LÓGICA ---
     
     reloadBtn.textContent = "Loading...";
     container.innerHTML = '<div class="loading">Loading player status...</div>';
@@ -252,13 +250,18 @@ async function populateLeagueContextSelect() {
     }
 }
 
+// Substitua a função handleDepthChartSelection por esta:
 async function handleDepthChartSelection() {
-    const teamSelect = document.getElementById('select-nfl-team').value;
+    const teamSelect = document.getElementById('select-nfl-team');
     const leagueSelect = document.getElementById('select-league-context').value;
     const container = document.getElementById('depth-chart-container');
     const loading = document.getElementById('depth-chart-loading');
 
-    if (!teamSelect) {
+    // Pega tanto a abreviação (valor) quanto o nome completo (texto)
+    const teamAbbr = teamSelect.value;
+    const teamFullName = teamSelect.options[teamSelect.selectedIndex].text;
+
+    if (!teamAbbr) {
         container.classList.add('hidden');
         return;
     }
@@ -267,8 +270,9 @@ async function handleDepthChartSelection() {
     container.classList.add('hidden');
 
     try {
-        const data = await fetchDepthChart(teamSelect, leagueSelect);
-        renderDepthChart(data.chart, data.current_user_id, teamSelect);
+        const data = await fetchDepthChart(teamAbbr, leagueSelect);
+        // Passa o nome completo do time para a função de renderização
+        renderDepthChart(data.chart, data.current_user_id, teamFullName);
         container.classList.remove('hidden');
     } catch (error) {
         console.error(error);
@@ -279,15 +283,16 @@ async function handleDepthChartSelection() {
     }
 }
 
+// Substitua a função renderDepthChart por esta:
 function renderDepthChart(chartData, currentUserId, teamName) {
     const header = document.getElementById('depth-chart-header');
     const tableContainer = document.getElementById('depth-chart-table-container');
     
+    // Agora 'teamName' será o nome completo, como "Buffalo Bills"
     header.textContent = `Depth Chart - ${teamName}`;
     
     const posicoesOrdenadas = Object.keys(chartData).sort((a, b) => (POSICAO_ORDEM[a] || 99) - (POSICAO_ORDEM[b] || 99));
 
-    // A estrutura da tabela agora usa classes CSS personalizadas
     let tableHtml = `
         <table class="depth-chart-table">
             <thead>
@@ -308,8 +313,7 @@ function renderDepthChart(chartData, currentUserId, teamName) {
         for (let i = 0; i < 4; i++) {
             if (players[i]) {
                 const player = players[i];
-                // A lógica para as classes de status foi simplificada
-                let statusClass = 'status-free-agent'; // Classe padrão para Free Agent
+                let statusClass = 'status-free-agent';
                 if (player.owner_id) {
                     statusClass = player.owner_id === currentUserId ? 'status-owned-by-user' : 'status-owned-by-other';
                 }
