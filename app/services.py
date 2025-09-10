@@ -186,18 +186,39 @@ def get_roster_position(player_id, roster, league_id):
         except (ValueError, IndexError): return "ST"
     return "BN"
 
+# Dicionário com o mapeamento de abreviação para nome completo do time.
+NFL_TEAMS_MAP = {
+    'ARI': 'Arizona Cardinals', 'ATL': 'Atlanta Falcons', 'BAL': 'Baltimore Ravens',
+    'BUF': 'Buffalo Bills', 'CAR': 'Carolina Panthers', 'CHI': 'Chicago Bears',
+    'CIN': 'Cincinnati Bengals', 'CLE': 'Cleveland Browns', 'DAL': 'Dallas Cowboys',
+    'DEN': 'Denver Broncos', 'DET': 'Detroit Lions', 'GB': 'Green Bay Packers',
+    'HOU': 'Houston Texans', 'IND': 'Indianapolis Colts', 'JAX': 'Jacksonville Jaguars',
+    'KC': 'Kansas City Chiefs', 'LV': 'Las Vegas Raiders', 'LAC': 'Los Angeles Chargers',
+    'LAR': 'Los Angeles Rams', 'MIA': 'Miami Dolphins', 'MIN': 'Minnesota Vikings',
+    'NE': 'New England Patriots', 'NO': 'New Orleans Saints', 'NYG': 'New York Giants',
+    'NYJ': 'New York Jets', 'PHI': 'Philadelphia Eagles', 'PIT': 'Pittsburgh Steelers',
+    'SF': 'San Francisco 49ers', 'SEA': 'Seattle Seahawks', 'TB': 'Tampa Bay Buccaneers',
+    'TEN': 'Tennessee Titans', 'WAS': 'Washington Commanders'
+}
+
 def get_nfl_teams():
-    """Busca e retorna uma lista de todos os times da NFL a partir do cache de jogadores."""
+    """Busca as abreviações dos times e retorna uma lista de dicionários com abreviação e nome completo."""
     all_players = get_all_players()
     if not all_players:
         return []
     
-    teams = set()
-    for player in all_players.values():
-        if player.get('team'):
-            teams.add(player['team'])
-            
-    return sorted(list(teams))
+    # Obtém um conjunto de abreviações únicas do cache de jogadores
+    team_abbrs = sorted(list({
+        player['team'] for player in all_players.values() if player.get('team')
+    }))
+    
+    # Cria a lista de times com nome completo, usando o dicionário NFL_TEAMS_MAP
+    teams = [
+        {'abbr': abbr, 'name': NFL_TEAMS_MAP.get(abbr, abbr)}
+        for abbr in team_abbrs
+    ]
+    
+    return teams
 
 def get_nfl_depth_chart(team_abbr, league_id=None):
     """

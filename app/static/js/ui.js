@@ -1,5 +1,5 @@
 import { createPlayerCardComponent, createLeagueElement } from './components.js';
-import { fetchPlayerStatus, fetchTopPlayers, fetchPlayerDetails, searchPlayers, fetchNflTeams, fetchDepthChart } from './api.js';
+import { fetchPlayerStatus, fetchTopPlayers, fetchPlayerDetails, searchPlayers, fetchNflTeams, fetchDepthChart, fetchAllLeagues } from './api.js';
 
 // Estado da UI
 const appState = { expandedState: {} };
@@ -12,7 +12,17 @@ export async function loadPlayerStatus(forceRefresh = false, showBestBall = fals
     const noIssues = document.getElementById('no-issues-message');
     const reloadBtn = document.getElementById('reload-btn');
     
+    // --- INÍCIO DA NOVA LÓGICA ---
+    // Seleciona os botões das outras abas
+    const findForPlayerTab = document.querySelector('.tab-btn[data-tab="find-player"]');
+    const depthChartTab = document.querySelector('.tab-btn[data-tab="depth-chart"]');
+
+    // Desabilita o botão de reload e as outras abas
     reloadBtn.disabled = true;
+    if (findForPlayerTab) findForPlayerTab.disabled = true;
+    if (depthChartTab) depthChartTab.disabled = true;
+    // --- FIM DA NOVA LÓGICA ---
+    
     reloadBtn.textContent = "Loading...";
     container.innerHTML = '<div class="loading">Loading player status...</div>';
     
@@ -30,7 +40,12 @@ export async function loadPlayerStatus(forceRefresh = false, showBestBall = fals
     } catch (error) {
         container.innerHTML = `<div class="error"><p>Error loading player status:</p><p><strong>${error.message}</strong></p></div>`;
     } finally {
+        // --- INÍCIO DA LÓGICA MODIFICADA ---
+        // Reabilita o botão de reload e as outras abas
         reloadBtn.disabled = false;
+        if (findForPlayerTab) findForPlayerTab.disabled = false;
+        if (depthChartTab) depthChartTab.disabled = false;
+        // --- FIM DA LÓGICA MODIFICADA ---
         reloadBtn.textContent = "↻ Reload";
     }
 }
@@ -192,11 +207,17 @@ export async function initDepthChartTab() {
     // Só carrega os times se a lista estiver vazia
     if (teamSelect.options.length <= 1) {
         try {
-            const teams = await fetchNflTeams();
+            // A API agora retorna uma lista de objetos: [{abbr: 'PIT', name: 'Pittsburgh Steelers'}, ...]
+            const teams = await fetchNflTeams(); 
+            
+            // Loop modificado para usar a nova estrutura de dados
             teams.forEach(team => {
-                const option = new Option(team, team);
+                // O valor da opção é a abreviação (ex: 'PIT')
+                // O texto exibido é o nome completo (ex: 'Pittsburgh Steelers')
+                const option = new Option(team.name, team.abbr);
                 teamSelect.add(option);
             });
+
         } catch (error) {
             console.error(error);
         }
@@ -216,15 +237,18 @@ async function populateLeagueContextSelect() {
     if (leagueSelect.options.length > 1) return; // Já populado
     
     try {
-        // Usa a mesma API da primeira aba para pegar as ligas do usuário
-        const leagues = await fetchPlayerStatus();
-        for (const leagueId in leagues) {
-            const league = leagues[leagueId];
-            const option = new Option(league.name, leagueId);
+        // ANTES: usava fetchPlayerStatus() que retorna dados filtrados
+        // AGORA: usa a nova função fetchAllLeagues() para buscar TODAS as ligas
+        const leagues = await fetchAllLeagues();
+        
+        // A nova API retorna um array simples de ligas, então o loop é mais direto
+        leagues.forEach(league => {
+            const option = new Option(league.name, league.league_id);
             leagueSelect.add(option);
-        }
+        });
+
     } catch (error) {
-        console.error("Erro ao carregar ligas para o contexto:", error);
+        console.error("Erro ao carregar todas as ligas para o contexto:", error);
     }
 }
 
@@ -263,34 +287,36 @@ function renderDepthChart(chartData, currentUserId, teamName) {
     
     const posicoesOrdenadas = Object.keys(chartData).sort((a, b) => (POSICAO_ORDEM[a] || 99) - (POSICAO_ORDEM[b] || 99));
 
+    // A estrutura da tabela agora usa classes CSS personalizadas
     let tableHtml = `
-        <table class="min-w-full bg-white divide-y divide-gray-200">
-            <thead class="bg-gray-800">
+        <table class="depth-chart-table">
+            <thead>
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Posição</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 1</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 2</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 3</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Jogador 4</th>
+                    <th>Posição</th>
+                    <th>Jogador 1</th>
+                    <th>Jogador 2</th>
+                    <th>Jogador 3</th>
+                    <th>Jogador 4</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody>
     `;
 
     posicoesOrdenadas.forEach(pos => {
         const players = chartData[pos];
-        tableHtml += `<tr><td class="px-6 py-4 font-bold bg-gray-100">${pos}</td>`;
+        tableHtml += `<tr><td class="position-cell">${pos}</td>`;
         for (let i = 0; i < 4; i++) {
             if (players[i]) {
                 const player = players[i];
-                let statusClass = 'text-gray-500'; // Free Agent
+                // A lógica para as classes de status foi simplificada
+                let statusClass = 'status-free-agent'; // Classe padrão para Free Agent
                 if (player.owner_id) {
-                    statusClass = player.owner_id === currentUserId ? 'text-green-600 font-semibold' : 'text-yellow-600';
+                    statusClass = player.owner_id === currentUserId ? 'status-owned-by-user' : 'status-owned-by-other';
                 }
-                const injuryStatus = player.injury ? `<span class="text-red-500 text-xs ml-1">(${player.injury})</span>` : '';
-                tableHtml += `<td class="px-6 py-4 whitespace-nowrap"><span class="${statusClass}">${player.name}</span>${injuryStatus}</td>`;
+                const injuryStatus = player.injury ? `<span class="injury-status">(${player.injury})</span>` : '';
+                tableHtml += `<td><span class="${statusClass}">${player.name}</span>${injuryStatus}</td>`;
             } else {
-                tableHtml += `<td class="px-6 py-4">-</td>`;
+                tableHtml += `<td>-</td>`;
             }
         }
         tableHtml += `</tr>`;

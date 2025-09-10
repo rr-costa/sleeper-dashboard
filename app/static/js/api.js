@@ -50,3 +50,9 @@ export async function fetchDepthChart(teamAbbr, leagueId = null) {
     if (!response.ok) throw new Error('Failed to load depth chart');
     return await response.json();
 }
+
+export async function fetchAllLeagues() {
+    const response = await fetch('/api/all-leagues');
+    if (!response.ok) throw new Error('Failed to load all leagues');
+    return await response.json();
+}
