@@ -1,4 +1,4 @@
-import { loadPlayerStatus, initFindForPlayerTab, updateSearchSuggestions } from './ui.js';
+import { loadPlayerStatus, initFindForPlayerTab, updateSearchSuggestions, initDepthChartTab } from './ui.js';
 
 function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(button => {
@@ -11,6 +11,8 @@ function setupTabs() {
                 initFindForPlayerTab();
             } else if (tabId === 'status-player') {
                 loadPlayerStatusWithToggle(); // Carrega com as configurações atuais do toggle
+            } else if (tabId === 'depth-chart') { 
+                initDepthChartTab();
             }
         });
     });
@@ -28,15 +30,10 @@ function setupLogout() {
 
 function setupKofiModal() {
     const modal = document.getElementById('kofi-modal');
-    const shouldShow = !localStorage.getItem('kofiModalDismissed');
-    
-    if (shouldShow) {
-        modal.style.display = 'flex';
-    }
 
+    // Esta função agora apenas configura os eventos de clique dos botões da modal
     const close = () => {
         modal.style.display = 'none';
-        localStorage.setItem('kofiModalDismissed', 'true');
     };
 
     document.getElementById('kofi-close').addEventListener('click', close);
@@ -78,23 +75,43 @@ function addEventListeners() {
 }
 
 async function initializeApp() {
+    const kofiModal = document.getElementById('kofi-modal');
+    const kofiCloseBtn = document.getElementById('kofi-close');
+
     try {
         setupTabs();
         setupLogout();
-        setupBestBallToggle(); // Configurar o toggle
+        setupBestBallToggle();
         addEventListeners();
-        
-        await loadPlayerStatusWithToggle(); // Carrega a aba principal com as configurações do toggle
-        
+        setupKofiModal(); // Configura os listeners dos botões da modal
+
+        // Exibe a modal e desabilita o botão de fechar antes de carregar os dados
+        kofiModal.style.display = 'flex';
+        kofiCloseBtn.disabled = true;
+        kofiCloseBtn.textContent = 'Aguarde...';
+        kofiCloseBtn.style.cursor = 'not-allowed';
+        kofiCloseBtn.style.color = '#666';
+
+        await loadPlayerStatusWithToggle(); // Carrega os dados principais
+
+        // Esconde a tela de loading e exibe o conteúdo principal
         document.getElementById('app-loading').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
 
-        // O modal do Ko-fi só aparece depois que tudo carregou
-        setupKofiModal();
+        // Após tudo carregar, reabilita o botão de fechar da modal
+        kofiCloseBtn.disabled = false;
+        kofiCloseBtn.textContent = 'Fica para a próxima';
+        kofiCloseBtn.style.cursor = 'pointer';
+        kofiCloseBtn.style.color = '#aaa';
+
     } catch (error) {
         console.error('Initialization error:', error);
         document.getElementById('app-loading').innerHTML = `
             <div class="error"><h3>Initialization Error</h3><p>${error.message}</p></div>`;
+        // Esconde a modal em caso de erro
+        if (kofiModal) {
+            kofiModal.style.display = 'none';
+        }
     }
 }
 

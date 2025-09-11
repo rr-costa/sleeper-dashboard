@@ -35,7 +35,7 @@ def create_app(config_name):
 
     @app.after_request
     def add_csp(response):
-        csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://sleeper.com; connect-src 'self' https://ko-fi.com;"
+        csp = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://sleeper.com; connect-src 'self' https://ko-fi.com;"
         response.headers['Content-Security-Policy'] = csp
         return response
 

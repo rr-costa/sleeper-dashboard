@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NFL Fantasy Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
     <style>
         .modal {
             position: fixed;
@@ -422,6 +423,7 @@
         <nav class="tabs">
             <button class="tab-btn active" data-tab="status-player">Status Player</button>
             <button class="tab-btn" data-tab="find-player">Find for Player</button>
+            <button class="tab-btn" data-tab="depth-chart">Depth Chart</button> </nav>
         </nav>
 
         <main>
@@ -491,6 +493,36 @@
                     </div>
                 </section>
             </div>
+            
+            <!-- Depth Chart Tab -->
+            <div id="depth-chart" class="tab-content">
+                <h2>NFL Team Depth Charts</h2>
+
+                <div class="depth-chart-controls">
+                    <div class="control-group">
+                        <label for="select-nfl-team">Time da NFL</label>
+                        <select id="select-nfl-team">
+                            <option value="">Selecione um time</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="select-league-context">Contexto da Liga (para ver donos)</label>
+                        <select id="select-league-context">
+                            <option value="">Nenhuma</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="depth-chart-container" class="hidden">
+                    <h3 id="depth-chart-header"></h3>
+                    <div id="depth-chart-table-container"></div>
+                </div>
+
+                <div id="depth-chart-loading" class="text-center py-8 hidden">
+                    <div class="app-loading-spinner mx-auto"></div>
+                    <p class="mt-2 text-gray-600">Carregando Depth Chart...</p>
+                </div>
+            </div> 
         </main>
         <!-- Modal de Confirmação de Logout -->
         <div id="logout-modal" class="modal" style="display: none;">

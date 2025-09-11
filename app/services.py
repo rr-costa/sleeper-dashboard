@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from . import utils
 import time
 import logging
+from collections import defaultdict
 
 # --- FUNÇÕES DE REQUEST À API SLEEPER ---
 def sleeper_request(url, timeout=10):
@@ -184,3 +185,123 @@ def get_roster_position(player_id, roster, league_id):
             return "ST"  # Retorna "ST" como fallback se as settings falharem
         except (ValueError, IndexError): return "ST"
     return "BN"
+
+# Dicionário com o mapeamento de abreviação para nome completo do time.
+"""NFL_TEAMS_MAP = {
+    'ARI': 'Arizona Cardinals', 'ATL': 'Atlanta Falcons', 'BAL': 'Baltimore Ravens',
+    'BUF': 'Buffalo Bills', 'CAR': 'Carolina Panthers', 'CHI': 'Chicago Bears',
+    'CIN': 'Cincinnati Bengals', 'CLE': 'Cleveland Browns', 'DAL': 'Dallas Cowboys',
+    'DEN': 'Denver Broncos', 'DET': 'Detroit Lions', 'GB': 'Green Bay Packers',
+    'HOU': 'Houston Texans', 'IND': 'Indianapolis Colts', 'JAX': 'Jacksonville Jaguars',
+    'KC': 'Kansas City Chiefs', 'LV': 'Las Vegas Raiders', 'LAC': 'Los Angeles Chargers',
+    'LAR': 'Los Angeles Rams', 'MIA': 'Miami Dolphins', 'MIN': 'Minnesota Vikings',
+    'NE': 'New England Patriots', 'NO': 'New Orleans Saints', 'NYG': 'New York Giants',
+    'NYJ': 'New York Jets', 'PHI': 'Philadelphia Eagles', 'PIT': 'Pittsburgh Steelers',
+    'SF': 'San Francisco 49ers', 'SEA': 'Seattle Seahawks', 'TB': 'Tampa Bay Buccaneers',
+    'TEN': 'Tennessee Titans', 'WAS': 'Washington Commanders'
+}"""
+
+def get_nfl_teams():
+    """
+    Constrói um dicionário de times da NFL a partir do cache de jogadores,
+    filtrando pelas unidades de defesa.
+
+    Retorna:
+        Um dicionário onde as chaves são as abreviações dos times e os
+        valores são os nomes completos.
+    """
+    all_players = get_all_players() # Sua função que já lê o players_cache.json
+    nfl_teams = {}
+
+    if not all_players:
+        return nfl_teams
+
+    for player_id, player_data in all_players.items():
+        # Verifica se a entrada corresponde a um time de defesa
+        if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
+            # Constrói o nome completo do time
+            full_name = f"{player_data['first_name']} {player_data['last_name']}"
+            # A abreviação do time está no player_id
+            team_abbr = player_id
+            nfl_teams[team_abbr] = full_name
+            
+    # Ordena o dicionário por nome do time para exibição na interface
+    sorted_teams = dict(sorted(nfl_teams.items(), key=lambda item: item[1]))
+    
+    return sorted_teams
+
+
+def get_nfl_teams():
+    """
+    Busca as abreviações dos times e retorna uma lista de dicionários 
+    com abreviação e nome completo, extraídos dinamicamente do cache de jogadores.
+    """
+    all_players = get_all_players()
+    if not all_players:
+        return []
+    
+    teams_list = []
+    seen_teams = set() # Usado para evitar duplicatas
+
+    for player_id, player_data in all_players.items():
+        # A lógica para identificar um time é a mesma
+        if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
+            
+            team_abbr = player_id
+            
+            # Evita adicionar o mesmo time duas vezes
+            if team_abbr not in seen_teams:
+                full_name = f"{player_data['first_name']} {player_data['last_name']}"
+                
+                # Adiciona no formato que o JavaScript espera: {'abbr': '...', 'name': '...'}
+                teams_list.append({'abbr': team_abbr, 'name': full_name})
+                seen_teams.add(team_abbr)
+    
+    # Ordena a lista de times pelo nome completo
+    teams_list.sort(key=lambda x: x['name'])
+    
+    return teams_list
+
+def get_nfl_depth_chart(team_abbr, league_id=None):
+    """
+    Monta o depth chart para um time da NFL e enriquece com dados de uma liga específica.
+    """
+    all_players = get_all_players()
+    if not all_players:
+        return {}
+
+    # 1. Filtra jogadores do time selecionado
+    team_players = [p for p in all_players.values() if p.get('team') == team_abbr and p.get('active') and p.get('depth_chart_order') is not None]
+
+    # 2. Obtém dados da liga, se um league_id for fornecido
+    league_players = {}
+    if league_id:
+        rosters = get_cached_rosters(league_id)
+        if rosters:
+            for roster in rosters:
+                owner_id = roster.get('owner_id')
+                for player_id in roster.get('players', []):
+                    league_players[player_id] = owner_id
+
+    # 3. Agrupa jogadores por posição e enriquece com dados da liga
+    depth_chart = defaultdict(list)
+    for player in team_players:
+        pos = player.get('depth_chart_position') or player.get('position')
+        if not pos:
+            continue
+
+        player_id = player.get('player_id')
+        owner_id = league_players.get(player_id) if league_id else None
+
+        depth_chart[pos].append({
+            'name': player.get('full_name', f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()),
+            'order': player.get('depth_chart_order'),
+            'injury': player.get('injury_status'),
+            'owner_id': owner_id
+        })
+    
+    # 4. Ordena os jogadores dentro de cada posição
+    for pos in depth_chart:
+        depth_chart[pos].sort(key=lambda x: (x['order'] if x['order'] is not None else float('inf')))
+        
+    return depth_chart

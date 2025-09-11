@@ -198,3 +198,32 @@ def refresh_players_cache():
     except Exception as e:
         current_app.logger.error(f"Erro ao forçar a atualização do cache de jogadores: {str(e)}")
         return jsonify(success=False, message='Ocorreu um erro ao atualizar o cache.'), 500
+
+@api.route('/nfl-teams')
+@utils.login_required
+def nfl_teams():
+    teams = services.get_nfl_teams()
+    return jsonify(teams)
+
+@api.route('/depth-chart/<team_abbr>')
+@utils.login_required
+def depth_chart(team_abbr):
+    league_id = request.args.get('league_id')
+    chart_data = services.get_nfl_depth_chart(team_abbr, league_id)
+    # Passa o user_id para o frontend saber quem é o "dono" do time
+    return jsonify({'chart': chart_data, 'current_user_id': session.get('user_id')})
+
+@api.route('/all-leagues')
+@utils.login_required
+def get_all_leagues():
+    """Retorna todas as ligas de um usuário para a temporada atual, sem filtros."""
+    user_id = session['user_id']
+    
+    # A função get_cached_leagues já busca todas as ligas do usuário para a temporada
+    leagues = services.get_cached_leagues(user_id)
+    
+    if leagues is None:
+        # Retorna uma lista vazia ou um erro se a busca falhar
+        return jsonify([])
+        
+    return jsonify(leagues)
