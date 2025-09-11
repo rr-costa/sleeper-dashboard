@@ -203,36 +203,6 @@ def get_roster_position(player_id, roster, league_id):
 
 def get_nfl_teams():
     """
-    Constrói um dicionário de times da NFL a partir do cache de jogadores,
-    filtrando pelas unidades de defesa.
-
-    Retorna:
-        Um dicionário onde as chaves são as abreviações dos times e os
-        valores são os nomes completos.
-    """
-    all_players = get_all_players() # Sua função que já lê o players_cache.json
-    nfl_teams = {}
-
-    if not all_players:
-        return nfl_teams
-
-    for player_id, player_data in all_players.items():
-        # Verifica se a entrada corresponde a um time de defesa
-        if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
-            # Constrói o nome completo do time
-            full_name = f"{player_data['first_name']} {player_data['last_name']}"
-            # A abreviação do time está no player_id
-            team_abbr = player_id
-            nfl_teams[team_abbr] = full_name
-            
-    # Ordena o dicionário por nome do time para exibição na interface
-    sorted_teams = dict(sorted(nfl_teams.items(), key=lambda item: item[1]))
-    
-    return sorted_teams
-
-
-def get_nfl_teams():
-    """
     Busca as abreviações dos times e retorna uma lista de dicionários 
     com abreviação e nome completo, extraídos dinamicamente do cache de jogadores.
     """
