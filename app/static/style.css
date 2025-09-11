@@ -1277,7 +1277,7 @@ footer {
 
 .status-owned-by-user {
     color: #28a745; /* Verde */
-    font-weight: bold;
+    /*font-weight: bold; */
 }
 
 .status-owned-by-other {

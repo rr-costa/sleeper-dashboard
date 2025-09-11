@@ -197,7 +197,7 @@ function debounce(func, wait) {
 
 // --- Aba "Depth Chart" ---
 
-const POSICAO_ORDEM = { 'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4, 'DL': 5, 'LB': 6, 'DB': 7, 'K': 8 };
+const POSICAO_ORDEM = { 'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4,  'K': 5, 'DEF': 6, 'DL': 7, 'DE':8, 'DT': 9, 'LB': 10, 'DB': 11, 'CB' : 12, 'S': 13 };
 
 export async function initDepthChartTab() {
     const teamSelect = document.getElementById('select-nfl-team');
@@ -283,16 +283,40 @@ async function handleDepthChartSelection() {
     }
 }
 
-// Substitua a função renderDepthChart por esta:
+
 function renderDepthChart(chartData, currentUserId, teamName) {
     const header = document.getElementById('depth-chart-header');
     const tableContainer = document.getElementById('depth-chart-table-container');
     
-    // Agora 'teamName' será o nome completo, como "Buffalo Bills"
     header.textContent = `Depth Chart - ${teamName}`;
     
-    const posicoesOrdenadas = Object.keys(chartData).sort((a, b) => (POSICAO_ORDEM[a] || 99) - (POSICAO_ORDEM[b] || 99));
+    // Adicionar legenda de cores usando as classes CSS existentes
+    const legendHtml = `
+        <div class="depth-chart-legend" style="margin: 10px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 14px;">
+            <span style="margin-right: 15px;">
+                <span class="status-owned-by-user" style="padding: 2px 6px; border-radius: 3px; margin-right: 5px;">Your Roster</span>
+                <span class="status-owned-by-other" style="padding: 2px 6px; border-radius: 3px; margin-right: 5px;">Other Rosters</span> 
+                <span class="status-free-agent" style="padding: 2px 6px; border-radius: 3px; margin-right: 5px;">Free Agent</span> 
+            </span>
+        </div>
+    `;
 
+    
+    // Converter o chartData em array de jogadores para processamento
+    const allPlayers = [];
+    Object.entries(chartData).forEach(([depthChartPosition, players]) => {
+        players.forEach(player => {
+            allPlayers.push({
+                ...player,
+                depth_chart_position: depthChartPosition,
+                position: player.position || 'UNK'
+            });
+        });
+    });
+    
+    // Função de agrupamento e ordenação (mesma lógica do index.html)
+    const { jogadoresAgrupados, posicoesOrdenadas } = agruparEOrdenarJogadores(allPlayers);
+    
     let tableHtml = `
         <table class="depth-chart-table">
             <thead>
@@ -302,30 +326,109 @@ function renderDepthChart(chartData, currentUserId, teamName) {
                     <th>Jogador 2</th>
                     <th>Jogador 3</th>
                     <th>Jogador 4</th>
+                    <th>Jogador 5</th>
                 </tr>
             </thead>
             <tbody>
     `;
-
-    posicoesOrdenadas.forEach(pos => {
-        const players = chartData[pos];
-        tableHtml += `<tr><td class="position-cell">${pos}</td>`;
-        for (let i = 0; i < 4; i++) {
-            if (players[i]) {
-                const player = players[i];
+    
+    // Renderizar cada posição
+    posicoesOrdenadas.forEach(posicao => {
+        const jogadoresPosicao = jogadoresAgrupados[posicao] || [];
+        
+        tableHtml += `<tr class="fade-in">`;
+        tableHtml += `<td class="position-cell">${posicao}</td>`;
+        
+        // Renderizar até 5 jogadores por posição
+        for (let i = 0; i < 5; i++) {
+            const jogador = jogadoresPosicao[i];
+            if (jogador) {
                 let statusClass = 'status-free-agent';
-                if (player.owner_id) {
-                    statusClass = player.owner_id === currentUserId ? 'status-owned-by-user' : 'status-owned-by-other';
+                if (jogador.owner_id) {
+                    statusClass = jogador.owner_id === currentUserId ? 
+                        'status-owned-by-user' : 'status-owned-by-other';
                 }
-                const injuryStatus = player.injury ? `<span class="injury-status">(${player.injury})</span>` : '';
-                tableHtml += `<td><span class="${statusClass}">${player.name}</span>${injuryStatus}</td>`;
+                
+                const injuryStatus = jogador.injury ? 
+                    `<span class="injury-status">(${jogador.injury})</span>` : '';
+                
+                tableHtml += `<td><span class="${statusClass}">${jogador.name}</span>${injuryStatus}</td>`;
             } else {
                 tableHtml += `<td>-</td>`;
             }
         }
+        
         tableHtml += `</tr>`;
     });
-
+    
     tableHtml += `</tbody></table>`;
-    tableContainer.innerHTML = tableHtml;
+    tableContainer.innerHTML = legendHtml + tableHtml;
+}
+
+// Função auxiliar para agrupar e ordenar jogadores (mesma lógica do index.html)
+function agruparEOrdenarJogadores(jogadores) {
+    const jogadoresAgrupados = {};
+
+    if (!jogadores || !Array.isArray(jogadores)) {
+        return { jogadoresAgrupados: {}, posicoesOrdenadas: [] };
+    }
+
+    jogadores.forEach(jogador => {
+        if (!jogador) return;
+        
+        // Usa depth_chart_position para agrupar (LWR, RWR, SWR, etc.)
+        const pos = jogador.depth_chart_position || jogador.position || 'UNK';
+        if (!jogadoresAgrupados[pos]) {
+            jogadoresAgrupados[pos] = [];
+        }
+        jogadoresAgrupados[pos].push(jogador);
+    });
+
+    // Ordena as posições
+    const posicoesOrdenadas = Object.keys(jogadoresAgrupados).sort((a, b) => {
+        // Encontrar a posição principal de cada depth_position
+        const getMainPosition = (depthPos) => {
+            if (depthPos.includes('QB')) return 'QB';
+            if (depthPos.includes('RB')) return 'RB';
+            if (depthPos.includes('WR')) return 'WR';
+            if (depthPos.includes('TE')) return 'TE';
+            if (depthPos.includes('K')) return 'K';
+            if (depthPos.includes('DEF')) return 'DEF';
+            if (depthPos.includes('DL')) return 'DL';
+            if (depthPos.includes('DE')) return 'DE';
+            if (depthPos.includes('DT')) return 'DT';
+            if (depthPos.includes('LB')) return 'LB';
+            if (depthPos.includes('DB')) return 'DB';
+            if (depthPos.includes('CB')) return 'CB';
+            if (depthPos.includes('S')) return 'S';
+            return depthPos;
+        };
+
+        const mainPosA = getMainPosition(a);
+        const mainPosB = getMainPosition(b);
+        
+        // 1. Ordena pela posição principal usando POSICAO_ORDEM
+        const ordemA = POSICAO_ORDEM[mainPosA] || 99;
+        const ordemB = POSICAO_ORDEM[mainPosB] || 99;
+        
+        if (ordemA !== ordemB) {
+            return ordemA - ordemB;
+        }
+
+        // 2. Se mesma posição principal, ordena alfabeticamente pela depth_position
+        return a.localeCompare(b);
+    });
+
+    // 3. Ordena os jogadores dentro de cada grupo por 'order' (depth_chart_order)
+    posicoesOrdenadas.forEach(pos => {
+        if (jogadoresAgrupados[pos]) {
+            jogadoresAgrupados[pos].sort((a, b) => {
+                const orderA = a.order || a.depth_chart_order || Infinity;
+                const orderB = b.order || b.depth_chart_order || Infinity;
+                return orderA - orderB;
+            });
+        }
+    });
+
+    return { jogadoresAgrupados, posicoesOrdenadas };
 }
