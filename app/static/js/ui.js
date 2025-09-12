@@ -197,7 +197,10 @@ function debounce(func, wait) {
 
 // --- Aba "Depth Chart" ---
 
-const POSICAO_ORDEM = { 'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4,  'K': 5, 'DEF': 6, 'DL': 7, 'DE':8, 'DT': 9, 'LB': 10, 'DB': 11, 'CB' : 12, 'S': 13 };
+const POSICAO_ORDEM = { 'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4,  'K': 5, 'DEF': 6, 
+                        'DL': 7, 'DE':8, 'DT': 9, 'NT':10,
+                        'LB': 11, 'ILB': 12,
+                        'DB': 13, 'CB' : 14, 'S': 15, 'SS': 16, 'FS': 17 };
 
 export async function initDepthChartTab() {
     const teamSelect = document.getElementById('select-nfl-team');
@@ -288,7 +291,7 @@ function renderDepthChart(chartData, currentUserId, teamName) {
     const header = document.getElementById('depth-chart-header');
     const tableContainer = document.getElementById('depth-chart-table-container');
     
-    header.textContent = `Depth Chart - ${teamName}`;
+    header.textContent = `Depth Chart - ${teamName} (by Sleeper.app)`;
     
     // Adicionar legenda de cores usando as classes CSS existentes
     const legendHtml = `
