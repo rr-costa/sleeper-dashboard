@@ -271,7 +271,11 @@ def get_nfl_depth_chart(team_abbr, league_id=None):
         return {}
 
     # 1. Filtra jogadores do time selecionado
-    team_players = [p for p in all_players.values() if p.get('team') == team_abbr and p.get('active') and p.get('depth_chart_order') is not None]
+    team_players = [p for p in all_players.values() if p.get('team') == team_abbr 
+                    and p.get('active') and (p.get('depth_chart_position') is not None or p.get('position') =='DEF')
+                    and p.get('depth_chart_position') !='PR'
+                    and p.get('position') not in( 'P','LS','G','OL','OT','T','C','OG' )
+                     ]
 
     # 2. Obtém dados da liga, se um league_id for fornecido
     league_players = {}
