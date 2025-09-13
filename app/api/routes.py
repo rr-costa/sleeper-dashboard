@@ -161,23 +161,77 @@ def player_details():
     if not player_id: return jsonify(error='Player not found'), 404
 
     leagues_with_player = []
+    leagues_without_players = []
+
     for league in leagues:
-        if not league or 'league_id' not in league: continue
-        rosters = services.get_cached_rosters(league.get('league_id')) or []
+        if not league or 'league_id' not in league:
+            continue
+
+        league_id = league.get('league_id')
+        league_name = league.get('name', 'Unknown')
+        rosters = services.get_cached_rosters(league_id) or []
+        
+        player_found_in_roster = False
+        
         for roster in rosters:
-            if roster and roster.get('owner_id') == user_id and player_id in (roster.get('players') or []):
-                leagues_with_player.append({
-                    'league_id': league.get('league_id'), 'league_name': league.get('name', 'Unknown'),
-                    'roster_position': services.get_roster_position(player_id, roster, league.get('league_id')),
-                    'roster_id': roster.get('roster_id')
-                })
-                break
-    
+            if not roster:
+                continue
+            
+            # Verifica se o jogador está em algum roster (seu ou de outra pessoa)
+            if player_id in (roster.get('players') or []):
+                player_found_in_roster = True
+                
+                # Se o jogador pertence ao usuário, adicione à lista leagues_with_player
+                if roster.get('owner_id') == user_id:
+                    leagues_with_player.append({
+                        'league_id': league_id,
+                        'league_name': league_name,
+                        'roster_position': services.get_roster_position(player_id, roster, league_id),
+                        'roster_id': roster.get('roster_id')
+                    })
+                    # Não é necessário continuar verificando outros rosters nesta liga
+                    break 
+                
+                # Se o jogador pertence a outro dono, adicione à lista leagues_without_players com status 'TRADE'
+                else:
+                    leagues_without_players.append({
+                        'league_id': league_id,
+                        'league_name': league_name,
+                        'status': 'TRADE'
+                    })
+                    # Não é necessário continuar verificando outros rosters nesta liga
+                    break
+
+        # Se o loop de rosters terminar e o jogador não foi encontrado em nenhum roster,
+        # ele está como 'F.A' (Free Agent)
+        if not player_found_in_roster:
+            leagues_without_players.append({
+                'league_id': league_id,
+                'league_name': league_name,
+                'status': 'F.A'
+            })
+
+    print("Coleção leagues_without_players:")
+    print(leagues_without_players)
+ #   leagues_without_player = []
+ #   for league in leagues:
+ #       if not league or 'league_id' not in league: continue
+ #       rosters = services.get_cached_rosters(league.get('league_id')) or []
+ #       for roster in rosters:
+ #           if roster and roster.get('owner_id') == user_id and player_id in (roster.get('players') or []):
+ #               leagues_with_player.append({
+ #                   'league_id': league.get('league_id'), 'league_name': league.get('name', 'Unknown'),
+ #                   'roster_position': services.get_roster_position(player_id, roster, league.get('league_id')),
+ #                   'roster_id': roster.get('roster_id')
+ #               })
+ #               break
+            
     return jsonify({
         'player_name': player_name,
         'position': player_data.get('position', '?'),
         'injury_status': utils.format_status(player_data.get('injury_status') or 'Active'),
-        'leagues': leagues_with_player
+        'leagues': leagues_with_player,
+        'other_leagues': leagues_without_players
     })
 
 @api.route('/refresh-players-cache')

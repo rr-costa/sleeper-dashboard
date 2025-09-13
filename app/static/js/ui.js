@@ -174,7 +174,8 @@ async function showPlayerSearchResults(player) {
             playerName: player.name,
             leagues: data.leagues,
             position: data.position || '?',
-            injuryStatus: data.injury_status || 'Active'
+            injuryStatus: data.injury_status || 'Active',
+            otherLeagues: data.other_leagues || []
         };
 
         const card = createPlayerCardComponent(cardData);
