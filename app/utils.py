@@ -113,10 +113,22 @@ def log_user_access(username):
 
 # --- FORMATAÇÃO E HELPERS ---
 def format_status(status):
+    """Normaliza uma string de status para o formato esperado pelo sistema."""
     if not status: return 'Active'
-    status, status_lower = status.strip(), status.lower()
+    
+    # Converte o status para minúsculas para uma comparação robusta
+    status_lower = status.strip().lower()
+
+    # Mapeia diferentes variações para o formato padrão do STATUS_CONFIG
     status_map = {
-        'pup': 'PUP', 'ir': 'IR', 's': 'Suspended', 'o': 'Out', 'd': 'Doubtful',
-        'q': 'Questionable', 'p': 'Probable', 'active': 'Active'
+        'pup': 'PUP',
+        'ir': 'IR',
+        's': 'Suspended', 'suspended': 'Suspended',
+        'o': 'OUT', 'out': 'OUT', 'Out': 'OUT', # <-- AQUI A CORREÇÃO PRINCIPAL
+        'd': 'Doubtful', 'doubtful': 'Doubtful',
+        'q': 'Questionable', 'questionable': 'Questionable',
+        'p': 'Probable', 'probable': 'Probable',
+        'active': 'Active'
     }
+    # Retorna o valor mapeado ou o status original com a primeira letra maiúscula como fallback
     return status_map.get(status_lower, status.capitalize())
