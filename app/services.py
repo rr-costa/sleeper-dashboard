@@ -104,18 +104,23 @@ def _process_player_status(player_id, all_players):
     try:
         full_name = player.get('full_name')
         if not full_name:
-            # Construir nome se full_name não estiver disponível
             first_name = player.get('first_name', '')
             last_name = player.get('last_name', '')
             full_name = f"{first_name} {last_name}".strip() or f"Player_{player_id[:6]}"
         
         position = player.get('position') or '?'
         team = player.get('team') or '?'
-        injury_status = player.get('injury_status') or player.get('status') or 'Active'
+        
+        # --- LÓGICA ATUALIZADA ---
+        # Usa a função de formatação para garantir que o status seja sempre consistente
+        injury_status = utils.format_status(player.get('injury_status') or player.get('status'))
         
         safe_player = {'full_name': full_name, 'position': position, 'team': team, 'injury_status': injury_status}
+        
+        # Determina o status problemático (se não for 'Active')
         status = injury_status if injury_status != 'Active' else None
         return safe_player, status
+        
     except Exception as e:
         logging.warning(f"Error processing player {player_id}: {str(e)}")
         return {'full_name': f'Player_{player_id[:6]}', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
@@ -136,9 +141,8 @@ def get_starters_with_status(user_id, force_refresh=False, show_best_ball=False)
             league_settings, rosters = settings_future.result(), rosters_future.result()
         
         if not league_settings or not rosters: continue
-        if not league.get('status') == 'in_season': continue  # Apenas ligas na temporada   
-        if not show_best_ball and  not league.get('settings', {}).get('best_ball') == 0: continue #remove ligas best ball
-        
+        if not league.get('status') == 'in_season': continue
+        if not show_best_ball and not league.get('settings', {}).get('best_ball') == 0: continue
 
         roster_positions = league_settings.get('roster_positions', [])
         league_issues, total_issues = [], 0
@@ -151,11 +155,12 @@ def get_starters_with_status(user_id, force_refresh=False, show_best_ball=False)
                 league_issues.append({'status': 'Empty Position', 'positions': empty_positions, 'count': len(empty_positions), 'is_empty': True})
                 total_issues += len(empty_positions)
             
-            status_groups = {}
+            status_groups = defaultdict(list)
             for player_id in starters:
                 player, status = _process_player_status(player_id, all_players)
                 if status:
-                    status_groups.setdefault(status, []).append({
+                    # Agora o 'status' já vem formatado corretamente, não precisamos mais do 'if' aqui
+                    status_groups[status].append({
                         'id': player_id, 'name': player.get('full_name'), 'position': player.get('position'),
                         'team': player.get('team'), 'status': status
                     })
@@ -177,77 +182,40 @@ def get_roster_position(player_id, roster, league_id):
     if player_id in starters:
         try:
             idx = starters.index(player_id)
-            # Adicionada verificação para o caso de settings ser None
             settings = get_league_settings(league_id)
             if settings:
                 roster_positions = settings.get('roster_positions', [])
                 return roster_positions[idx] if idx < len(roster_positions) else "ST"
-            return "ST"  # Retorna "ST" como fallback se as settings falharem
+            return "ST"
         except (ValueError, IndexError): return "ST"
     return "BN"
 
-# Dicionário com o mapeamento de abreviação para nome completo do time.
-"""NFL_TEAMS_MAP = {
-    'ARI': 'Arizona Cardinals', 'ATL': 'Atlanta Falcons', 'BAL': 'Baltimore Ravens',
-    'BUF': 'Buffalo Bills', 'CAR': 'Carolina Panthers', 'CHI': 'Chicago Bears',
-    'CIN': 'Cincinnati Bengals', 'CLE': 'Cleveland Browns', 'DAL': 'Dallas Cowboys',
-    'DEN': 'Denver Broncos', 'DET': 'Detroit Lions', 'GB': 'Green Bay Packers',
-    'HOU': 'Houston Texans', 'IND': 'Indianapolis Colts', 'JAX': 'Jacksonville Jaguars',
-    'KC': 'Kansas City Chiefs', 'LV': 'Las Vegas Raiders', 'LAC': 'Los Angeles Chargers',
-    'LAR': 'Los Angeles Rams', 'MIA': 'Miami Dolphins', 'MIN': 'Minnesota Vikings',
-    'NE': 'New England Patriots', 'NO': 'New Orleans Saints', 'NYG': 'New York Giants',
-    'NYJ': 'New York Jets', 'PHI': 'Philadelphia Eagles', 'PIT': 'Pittsburgh Steelers',
-    'SF': 'San Francisco 49ers', 'SEA': 'Seattle Seahawks', 'TB': 'Tampa Bay Buccaneers',
-    'TEN': 'Tennessee Titans', 'WAS': 'Washington Commanders'
-}"""
-
 def get_nfl_teams():
-    """
-    Busca as abreviações dos times e retorna uma lista de dicionários 
-    com abreviação e nome completo, extraídos dinamicamente do cache de jogadores.
-    """
     all_players = get_all_players()
     if not all_players:
         return []
     
     teams_list = []
-    seen_teams = set() # Usado para evitar duplicatas
+    seen_teams = set()
 
     for player_id, player_data in all_players.items():
-        # A lógica para identificar um time é a mesma
         if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
-            
             team_abbr = player_id
-            
-            # Evita adicionar o mesmo time duas vezes
             if team_abbr not in seen_teams:
                 full_name = f"{player_data['first_name']} {player_data['last_name']}"
-                
-                # Adiciona no formato que o JavaScript espera: {'abbr': '...', 'name': '...'}
                 teams_list.append({'abbr': team_abbr, 'name': full_name})
                 seen_teams.add(team_abbr)
     
-    # Ordena a lista de times pelo nome completo
     teams_list.sort(key=lambda x: x['name'])
-    
     return teams_list
 
 def get_nfl_depth_chart(team_abbr, league_id=None):
-    """
-    Monta o depth chart para um time da NFL e enriquece com dados de uma liga específica.
-    """
     all_players = get_all_players()
     if not all_players:
         return {}
 
-    # 1. Filtra jogadores do time selecionado
-    team_players = [p for p in all_players.values() if p.get('team') == team_abbr 
-                    and p.get('active') and (p.get('depth_chart_position') is not None or p.get('position') =='DEF')
-                    and p.get('depth_chart_position') !='PR'
-                    and p.get('position') not in( 'P','LS','G','OL','OT','T','C','OG' )
-                     ]
+    team_players = [p for p in all_players.values() if p.get('team') == team_abbr and p.get('active') and p.get('depth_chart_order') is not None]
 
-    # 2. Obtém dados da liga, se um league_id for fornecido
     league_players = {}
     if league_id:
         rosters = get_cached_rosters(league_id)
@@ -257,7 +225,6 @@ def get_nfl_depth_chart(team_abbr, league_id=None):
                 for player_id in roster.get('players', []):
                     league_players[player_id] = owner_id
 
-    # 3. Agrupa jogadores por posição e enriquece com dados da liga
     depth_chart = defaultdict(list)
     for player in team_players:
         pos = player.get('depth_chart_position') or player.get('position')
@@ -274,7 +241,6 @@ def get_nfl_depth_chart(team_abbr, league_id=None):
             'owner_id': owner_id
         })
     
-    # 4. Ordena os jogadores dentro de cada posição
     for pos in depth_chart:
         depth_chart[pos].sort(key=lambda x: (x['order'] if x['order'] is not None else float('inf')))
         
