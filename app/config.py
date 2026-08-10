@@ -16,7 +16,7 @@ class Config:
     
     # Configurações da aplicação
     SPORT = 'nfl'
-    CURRENT_SEASON = "2025"
+    CURRENT_SEASON = "2026"
     TOPN = 6
     CACHE_DIR = 'cache'
     ACCESS_LOG_FILE = os.path.join(CACHE_DIR, 'access_log.json')
