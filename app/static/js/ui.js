@@ -4,7 +4,7 @@ import { fetchPlayerStatus, fetchTopPlayers, fetchPlayerDetails, searchPlayers, 
 // Estado da UI
 const appState = { expandedState: {} };
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DL', 'LB', 'DB'];
-const STATUS_ORDER = { 'PUP': 0, 'IR': 1, 'Suspended': 2, 'OUT': 3, 'Doubtful': 4, 'Questionable': 5, 'Probable': 6 };
+const STATUS_ORDER = { 'PUP': 0, 'IR': 1, 'Bye': 2, 'Suspended': 3, 'OUT': 4, 'Doubtful': 5, 'Questionable': 6, 'Probable': 7 };
 
 // --- Aba "Status Player" ---
 export async function loadPlayerStatus(forceRefresh = false, showBestBall = false) {

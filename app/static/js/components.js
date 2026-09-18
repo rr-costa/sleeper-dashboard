@@ -1,6 +1,7 @@
 const STATUS_CLASSES = {
     'Active': 'active', 'Probable': 'probable', 'Questionable': 'questionable',
     'Doubtful': 'doubtful', 'OUT': 'out', 'IR': 'ir',
+    'Bye': 'bye',
     'Suspended': 'suspended', 'PUP': 'pup'
 };
 export function createPlayerCardComponent(playerData) {

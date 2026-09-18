@@ -19,6 +19,7 @@
     --out: #ff6b6b;
     --doubtful: #ff9e6b;
     --questionable: #ffd166;
+    --bye: #f4a261;
     --probable: #8ac926;
 }
 
@@ -1381,4 +1382,9 @@ footer {
 /* Remove a barra azul indicadora da aba ativa quando desabilitada */
 .tab-btn:disabled::after {
     background: none;
+}
+
+.status-tag.bye {
+    background: var(--bye);
+    color: white;
 }
