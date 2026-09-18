@@ -8,14 +8,14 @@ export function createPlayerCardComponent(playerData) {
     const { playerName, leagues, position, injuryStatus, otherLeagues, byeWeek } = playerData;
     const statusText = injuryStatus || 'Active';
     const statusClass = STATUS_CLASSES[statusText] || '';
-    const byeWeekText = byeWeek ? `<div style="display:block; font-size:11px; font-weight:400; line-height:1.2; color:#6c757d; margin-top:2px;">Bye Week ${byeWeek}</div>` : '';
+    const byeWeekText = byeWeek ? `<div style="display:block; font-size:11px; font-weight:400; line-height:1.2; color:#6c757d; margin-top:1px;">Bye Week ${byeWeek}</div>` : '';
 
     const card = document.createElement('div');
     card.className = 'top-player-card';
 
     const cardHTML = `
-        <div class="player-header">
-            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+        <div class="player-header" style="align-items:flex-start;">
+            <div style="display:flex; flex-direction:column; align-items:flex-start; gap:1px;">
                 <h4 style="margin:0; line-height:1.2;">${playerName}</h4>
                 ${byeWeekText}
             </div>
@@ -92,7 +92,6 @@ export function createPlayerCardComponent(playerData) {
                 </div>
             `).join('');
 
-            // Lógica para os botões de paginação
             paginationControls.innerHTML = '';
             const totalRemaining = otherLeagues.length - visibleItems.length;
 
