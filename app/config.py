@@ -29,9 +29,10 @@ class Config:
 
     STATUS_CONFIG = {
         'PUP': {'order': 0, 'abbr': 'PUP'}, 'IR': {'order': 1, 'abbr': 'IR'},
-        'Suspended': {'order': 2, 'abbr': 'S'}, 'OUT': {'order': 3, 'abbr': 'O'},
-        'Doubtful': {'order': 4, 'abbr': 'D'}, 'Questionable': {'order': 5, 'abbr': 'Q'},
-        'Probable': {'order': 6, 'abbr': 'P'}
+        'Bye': {'order': 2, 'abbr': 'BYE'},
+        'Suspended': {'order': 3, 'abbr': 'S'}, 'OUT': {'order': 4, 'abbr': 'O'},
+        'Doubtful': {'order': 5, 'abbr': 'D'}, 'Questionable': {'order': 6, 'abbr': 'Q'},
+        'Probable': {'order': 7, 'abbr': 'P'}
     }
     POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DL', 'LB', 'DB']
 
