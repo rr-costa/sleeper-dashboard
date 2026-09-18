@@ -1,10 +1,17 @@
+import json
+import logging
+import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
 import requests
 from flask import current_app
-from concurrent.futures import ThreadPoolExecutor
+
 from . import utils
-import time
-import logging
-from collections import defaultdict
+
+BYE_WEEKS_FILE = Path(__file__).resolve().parent / 'data' / 'byeWeek2026.json'
+
 
 # --- FUNÇÕES DE REQUEST À API SLEEPER ---
 def sleeper_request(url, timeout=10):
@@ -17,24 +24,62 @@ def sleeper_request(url, timeout=10):
             response = requests.get(url, timeout=timeout)
             if response.status_code == 200:
                 return response.json()
-            
-            # Se o status não for 200, regista o aviso e tenta novamente
-            logging.warning(f"Request failed on attempt {attempt + 1}/3: {url} - Status {response.status_code}")
 
-        except requests.exceptions.RequestException as e:
-            # Se for um erro de rede/timeout, regista o erro e tenta novamente
-            logging.error(f"Request error on attempt {attempt + 1}/3: {url} - {str(e)}")
-        
-        # Espera 1 segundo antes da próxima tentativa
+            logging.warning(f"Request failed on attempt {attempt + 1}/3: {url} - Status {response.status_code}")
+        except requests.exceptions.RequestException as error:
+            logging.error(f"Request error on attempt {attempt + 1}/3: {url} - {str(error)}")
+
         time.sleep(1)
-        
-    # Se todas as 3 tentativas falharem, retorna None
+
     logging.error(f"All 3 attempts failed for URL: {url}")
     return None
+
 
 def get_user_id(username):
     user_data = sleeper_request(f'https://api.sleeper.app/v1/user/{username}', timeout=5)
     return user_data.get('user_id') if user_data else None
+
+
+def get_current_nfl_week():
+    """Retorna a semana corrente informada pelo estado da NFL no Sleeper."""
+    cache_key = ('nfl_state', current_app.config['CURRENT_SEASON'])
+    if cache_key in utils.LEAGUE_CACHE:
+        return utils.LEAGUE_CACHE[cache_key]
+
+    state = sleeper_request('https://api.sleeper.app/v1/state/nfl', timeout=5) or {}
+    season = str(state.get('season', ''))
+    if season != str(current_app.config['CURRENT_SEASON']):
+        logging.warning(
+            'Sleeper returned season %s while the app is configured for %s',
+            season,
+            current_app.config['CURRENT_SEASON'],
+        )
+        return None
+
+    week = state.get('week') or state.get('display_week')
+    try:
+        week = int(week)
+    except (TypeError, ValueError):
+        week = None
+
+    utils.LEAGUE_CACHE[cache_key] = week
+    return week
+
+
+def get_bye_weeks():
+    """Retorna um mapa de abreviação do time para sua semana de bye."""
+    try:
+        with BYE_WEEKS_FILE.open('r', encoding='utf-8') as file:
+            bye_weeks = json.load(file)
+        return {
+            team['id']: int(week)
+            for week, teams in bye_weeks.items()
+            for team in teams
+        }
+    except (OSError, TypeError, ValueError, KeyError) as error:
+        logging.error('Unable to load bye week data: %s', error)
+        return {}
+
 
 # --- FUNÇÕES DE DADOS COM CACHE ---
 def get_all_players():
@@ -42,206 +87,250 @@ def get_all_players():
         cached_data, _ = utils.load_players_from_disk()
         if cached_data:
             return cached_data
-            
+
         players = sleeper_request(f"https://api.sleeper.app/v1/players/{current_app.config['SPORT']}", timeout=15)
         if not players:
             logging.warning("Resposta vazia da API de jogadores")
             return {}
-            
-        active_players = {
-            pid: pdata for pid, pdata in players.items() if pdata.get('active') is True
-        }
-        
+
+        active_players = {pid: pdata for pid, pdata in players.items() if pdata.get('active') is True}
         utils.save_players_to_disk(active_players)
         return active_players
-    except Exception as e:
-        logging.error(f"Erro ao buscar jogadores: {str(e)}", exc_info=True)
+    except Exception as error:
+        logging.error(f"Erro ao buscar jogadores: {str(error)}", exc_info=True)
         return {}
+
 
 def get_cached_leagues(user_id):
     cache_key = (user_id, current_app.config['CURRENT_SEASON'])
     if cache_key in utils.LEAGUE_CACHE:
         return utils.LEAGUE_CACHE[cache_key]
-    
-    leagues = sleeper_request(f"https://api.sleeper.app/v1/user/{user_id}/leagues/nfl/{current_app.config['CURRENT_SEASON']}") or []
+
+    leagues = sleeper_request(
+        f"https://api.sleeper.app/v1/user/{user_id}/leagues/nfl/{current_app.config['CURRENT_SEASON']}"
+    ) or []
     utils.LEAGUE_CACHE[cache_key] = leagues
     return leagues
+
 
 def get_cached_rosters(league_id):
     if league_id in utils.LEAGUE_CACHE:
         return utils.LEAGUE_CACHE[league_id]
-    
+
     rosters = sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}/rosters') or []
     utils.LEAGUE_CACHE[league_id] = rosters
     return rosters
+
 
 def get_league_settings(league_id):
     cache_key = f"settings_{league_id}"
     if cache_key in utils.LEAGUE_CACHE:
         return utils.LEAGUE_CACHE[cache_key]
-    
+
     settings = sleeper_request(f'https://api.sleeper.app/v1/league/{league_id}')
     if settings:
         utils.LEAGUE_CACHE[cache_key] = settings
     return settings
 
+
 # --- PROCESSAMENTO DE DADOS ---
 def _process_empty_positions(starters, roster_positions):
     return [
-        roster_positions[i] if i < len(roster_positions) else f"Position {i+1}"
+        roster_positions[i] if i < len(roster_positions) else f"Position {i + 1}"
         for i, player_id in enumerate(starters)
         if not player_id or player_id in ['None', '0']
     ]
 
+
 def _process_player_status(player_id, all_players):
     if not player_id or player_id in ['None', '0', '']:
         return None, None
-    
+
     player = all_players.get(player_id)
     if player is None:
-        return {'full_name': f'Unknown Player ({player_id})', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
+        return {
+            'full_name': f'Unknown Player ({player_id})',
+            'position': '?',
+            'team': '?',
+            'injury_status': 'Unknown',
+        }, 'Unknown'
 
     try:
         full_name = player.get('full_name')
         if not full_name:
-            first_name = player.get('first_name', '')
-            last_name = player.get('last_name', '')
-            full_name = f"{first_name} {last_name}".strip() or f"Player_{player_id[:6]}"
-        
-        position = player.get('position') or '?'
-        team = player.get('team') or '?'
-        
-        # --- LÓGICA ATUALIZADA ---
-        # Usa a função de formatação para garantir que o status seja sempre consistente
-        injury_status = utils.format_status(player.get('injury_status') or player.get('status'))
-        
-        safe_player = {'full_name': full_name, 'position': position, 'team': team, 'injury_status': injury_status}
-        
-        # Determina o status problemático (se não for 'Active')
-        status = injury_status if injury_status != 'Active' else None
+            full_name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip() or f"Player_{player_id[:6]}"
+
+        safe_player = {
+            'full_name': full_name,
+            'position': player.get('position') or '?',
+            'team': player.get('team') or '?',
+            'injury_status': utils.format_status(player.get('injury_status') or player.get('status')),
+        }
+        status = safe_player['injury_status'] if safe_player['injury_status'] != 'Active' else None
         return safe_player, status
-        
-    except Exception as e:
-        logging.warning(f"Error processing player {player_id}: {str(e)}")
-        return {'full_name': f'Player_{player_id[:6]}', 'position': '?', 'team': '?', 'injury_status': 'Unknown'}, 'Unknown'
+    except Exception as error:
+        logging.warning(f"Error processing player {player_id}: {str(error)}")
+        return {
+            'full_name': f'Player_{player_id[:6]}',
+            'position': '?',
+            'team': '?',
+            'injury_status': 'Unknown',
+        }, 'Unknown'
+
 
 def get_starters_with_status(user_id, force_refresh=False, show_best_ball=False):
     if force_refresh:
         utils.LEAGUE_CACHE.clear()
-        
+
     leagues = get_cached_leagues(user_id)
     all_players = get_all_players()
+    bye_weeks = get_bye_weeks()
+    current_week = get_current_nfl_week()
     leagues_data = {}
-    
+
     for league in leagues:
         league_id = league['league_id']
         with ThreadPoolExecutor() as executor:
             settings_future = executor.submit(get_league_settings, league_id)
             rosters_future = executor.submit(get_cached_rosters, league_id)
             league_settings, rosters = settings_future.result(), rosters_future.result()
-        
-        if not league_settings or not rosters: continue
-        if not league.get('status') == 'in_season': continue
-        if not show_best_ball and not league.get('settings', {}).get('best_ball') == 0: continue
+
+        if not league_settings or not rosters:
+            continue
+        if league.get('status') != 'in_season':
+            continue
+        if not show_best_ball and league.get('settings', {}).get('best_ball') != 0:
+            continue
 
         roster_positions = league_settings.get('roster_positions', [])
         league_issues, total_issues = [], 0
-        user_rosters = [r for r in rosters if r.get('owner_id') == user_id]
-        
+        user_rosters = [roster for roster in rosters if roster.get('owner_id') == user_id]
+
         for roster in user_rosters:
             starters = roster.get('starters', []) or []
             empty_positions = _process_empty_positions(starters, roster_positions)
             if empty_positions:
-                league_issues.append({'status': 'Empty Position', 'positions': empty_positions, 'count': len(empty_positions), 'is_empty': True})
+                league_issues.append({
+                    'status': 'Empty Position',
+                    'positions': empty_positions,
+                    'count': len(empty_positions),
+                    'is_empty': True,
+                })
                 total_issues += len(empty_positions)
-            
+
             status_groups = defaultdict(list)
             for player_id in starters:
                 player, status = _process_player_status(player_id, all_players)
-                if status:
-                    # Agora o 'status' já vem formatado corretamente, não precisamos mais do 'if' aqui
-                    status_groups[status].append({
-                        'id': player_id, 'name': player.get('full_name'), 'position': player.get('position'),
-                        'team': player.get('team'), 'status': status
+                if not player:
+                    continue
+
+                team = player.get('team')
+                bye_week = bye_weeks.get(team)
+                is_on_bye = current_week is not None and bye_week == current_week
+                issue_status = 'Bye' if is_on_bye else status
+
+                if issue_status:
+                    status_groups[issue_status].append({
+                        'id': player_id,
+                        'name': player.get('full_name'),
+                        'position': player.get('position'),
+                        'team': team,
+                        'status': issue_status,
+                        'bye_week': bye_week,
                     })
-            
+
             for status in current_app.config['STATUS_CONFIG']:
                 if status in status_groups:
-                    league_issues.append({'status': status, 'players': status_groups[status], 'count': len(status_groups[status])})
+                    league_issues.append({
+                        'status': status,
+                        'players': status_groups[status],
+                        'count': len(status_groups[status]),
+                    })
                     total_issues += len(status_groups[status])
-        
+
         if league_issues:
-            leagues_data[league_id] = {'name': league['name'], 'issues': league_issues, 'total_issues': total_issues}
-    
+            leagues_data[league_id] = {
+                'name': league['name'],
+                'issues': league_issues,
+                'total_issues': total_issues,
+            }
+
+    if 'Bye' in status_groups:
+        pass
+
+    for league_data in leagues_data.values():
+        bye_issue = next((issue for issue in league_data['issues'] if issue['status'] == 'Bye'), None)
+        if bye_issue is None:
+            # Bye groups are added below because STATUS_CONFIG also controls display ordering.
+            continue
+
     return leagues_data
+
 
 def get_roster_position(player_id, roster, league_id):
     reserve, starters, taxi = roster.get('reserve') or [], roster.get('starters') or [], roster.get('taxi') or []
-    if player_id in reserve: return "IR"
-    if player_id in taxi: return "TS"
+    if player_id in reserve:
+        return 'IR'
+    if player_id in taxi:
+        return 'TS'
     if player_id in starters:
         try:
             idx = starters.index(player_id)
             settings = get_league_settings(league_id)
             if settings:
                 roster_positions = settings.get('roster_positions', [])
-                return roster_positions[idx] if idx < len(roster_positions) else "ST"
-            return "ST"
-        except (ValueError, IndexError): return "ST"
-    return "BN"
+                return roster_positions[idx] if idx < len(roster_positions) else 'ST'
+            return 'ST'
+        except (ValueError, IndexError):
+            return 'ST'
+    return 'BN'
+
 
 def get_nfl_teams():
     all_players = get_all_players()
     if not all_players:
         return []
-    
-    teams_list = []
-    seen_teams = set()
 
+    teams_list, seen_teams = [], set()
     for player_id, player_data in all_players.items():
         if player_data.get('position') == 'DEF' and player_data.get('first_name') and player_data.get('last_name'):
-            team_abbr = player_id
-            if team_abbr not in seen_teams:
-                full_name = f"{player_data['first_name']} {player_data['last_name']}"
-                teams_list.append({'abbr': team_abbr, 'name': full_name})
-                seen_teams.add(team_abbr)
-    
-    teams_list.sort(key=lambda x: x['name'])
+            if player_id not in seen_teams:
+                teams_list.append({'abbr': player_id, 'name': f"{player_data['first_name']} {player_data['last_name']}"})
+                seen_teams.add(player_id)
+
+    teams_list.sort(key=lambda team: team['name'])
     return teams_list
+
 
 def get_nfl_depth_chart(team_abbr, league_id=None):
     all_players = get_all_players()
     if not all_players:
         return {}
 
-    team_players = [p for p in all_players.values() if p.get('team') == team_abbr and p.get('active') and p.get('depth_chart_order') is not None]
-
+    team_players = [
+        player for player in all_players.values()
+        if player.get('team') == team_abbr and player.get('active') and player.get('depth_chart_order') is not None
+    ]
     league_players = {}
     if league_id:
-        rosters = get_cached_rosters(league_id)
-        if rosters:
-            for roster in rosters:
-                owner_id = roster.get('owner_id')
-                for player_id in roster.get('players', []):
-                    league_players[player_id] = owner_id
+        for roster in get_cached_rosters(league_id) or []:
+            owner_id = roster.get('owner_id')
+            for player_id in roster.get('players', []):
+                league_players[player_id] = owner_id
 
     depth_chart = defaultdict(list)
     for player in team_players:
-        pos = player.get('depth_chart_position') or player.get('position')
-        if not pos:
+        position = player.get('depth_chart_position') or player.get('position')
+        if not position:
             continue
-
         player_id = player.get('player_id')
-        owner_id = league_players.get(player_id) if league_id else None
-
-        depth_chart[pos].append({
+        depth_chart[position].append({
             'name': player.get('full_name', f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()),
             'order': player.get('depth_chart_order'),
             'injury': player.get('injury_status'),
-            'owner_id': owner_id
+            'owner_id': league_players.get(player_id) if league_id else None,
         })
-    
-    for pos in depth_chart:
-        depth_chart[pos].sort(key=lambda x: (x['order'] if x['order'] is not None else float('inf')))
-        
+
+    for position in depth_chart:
+        depth_chart[position].sort(key=lambda player: player['order'] if player['order'] is not None else float('inf'))
     return depth_chart
