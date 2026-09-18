@@ -8,14 +8,17 @@ export function createPlayerCardComponent(playerData) {
     const { playerName, leagues, position, injuryStatus, otherLeagues, byeWeek } = playerData;
     const statusText = injuryStatus || 'Active';
     const statusClass = STATUS_CLASSES[statusText] || '';
-    const byeWeekText = byeWeek ? `<span class="bye-week">bye week ${byeWeek}</span>` : '';
+    const byeWeekText = byeWeek ? `<div style="display:block; font-size:11px; font-weight:400; line-height:1.2; color:#6c757d; margin-top:2px;">Bye Week ${byeWeek}</div>` : '';
 
     const card = document.createElement('div');
     card.className = 'top-player-card';
 
     const cardHTML = `
         <div class="player-header">
-            <h4>${playerName} ${byeWeekText}</h4>
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <h4 style="margin:0; line-height:1.2;">${playerName}</h4>
+                ${byeWeekText}
+            </div>
             <span class="badge">${leagues.length} leagues</span>
         </div>
         <div class="player-status">
