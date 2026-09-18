@@ -1,19 +1,21 @@
 const STATUS_CLASSES = {
     'Active': 'active', 'Probable': 'probable', 'Questionable': 'questionable',
     'Doubtful': 'doubtful', 'OUT': 'out', 'IR': 'ir',
+    'Bye': 'bye',
     'Suspended': 'suspended', 'PUP': 'pup'
 };
 export function createPlayerCardComponent(playerData) {
-    const { playerName, leagues, position, injuryStatus, otherLeagues } = playerData;
+    const { playerName, leagues, position, injuryStatus, otherLeagues, byeWeek } = playerData;
     const statusText = injuryStatus || 'Active';
     const statusClass = STATUS_CLASSES[statusText] || '';
+    const byeWeekText = byeWeek ? `<span class="bye-week">bye week ${byeWeek}</span>` : '';
 
     const card = document.createElement('div');
     card.className = 'top-player-card';
 
     const cardHTML = `
         <div class="player-header">
-            <h4>${playerName}</h4>
+            <h4>${playerName} ${byeWeekText}</h4>
             <span class="badge">${leagues.length} leagues</span>
         </div>
         <div class="player-status">

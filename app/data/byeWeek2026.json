@@ -1,0 +1,53 @@
+{
+    "5": [
+        {"id": "CAR", "city": "Carolina", "name": "Panthers"},
+        {"id": "KC", "city": "Kansas City", "name": "Chiefs"}
+    ],
+    "6": [
+        {"id": "CIN", "city": "Cincinnati", "name": "Bengals"},
+        {"id": "DET", "city": "Detroit", "name": "Lions"},
+        {"id": "MIA", "city": "Miami", "name": "Dolphins"},
+        {"id": "MIN", "city": "Minnesota", "name": "Vikings"}
+    ],
+    "7": [
+        {"id": "BUF", "city": "Buffalo", "name": "Bills"},
+        {"id": "JAX", "city": "Jacksonville", "name": "Jaguars"},
+        {"id": "LAC", "city": "Los Angeles", "name": "Chargers"},
+        {"id": "WAS", "city": "Washington", "name": "Commanders"}
+    ],
+    "8": [
+        {"id": "HOU", "city": "Houston", "name": "Texans"},
+        {"id": "NO", "city": "New Orleans", "name": "Saints"},
+        {"id": "NYG", "city": "New York", "name": "Giants"},
+        {"id": "SF", "city": "San Francisco", "name": "49ers"}
+    ],
+    "9": [
+        {"id": "PIT", "city": "Pittsburgh", "name": "Steelers"},
+        {"id": "TEN", "city": "Tennessee", "name": "Titans"}
+    ],
+    "10": [
+        {"id": "CHI", "city": "Chicago", "name": "Bears"},
+        {"id": "DEN", "city": "Denver", "name": "Broncos"},
+        {"id": "PHI", "city": "Philadelphia", "name": "Eagles"},
+        {"id": "TB", "city": "Tampa Bay", "name": "Buccaneers"}
+    ],
+    "11": [
+        {"id": "ATL", "city": "Atlanta", "name": "Falcons"},
+        {"id": "CLE", "city": "Cleveland", "name": "Browns"},
+        {"id": "GB", "city": "Green Bay", "name": "Packers"},
+        {"id": "LAR", "city": "Los Angeles", "name": "Rams"},
+        {"id": "NE", "city": "New England", "name": "Patriots"},
+        {"id": "SEA", "city": "Seattle", "name": "Seahawks"}
+    ],
+    "12": [],
+    "13": [
+        {"id": "BAL", "city": "Baltimore", "name": "Ravens"},
+        {"id": "IND", "city": "Indianapolis", "name": "Colts"},
+        {"id": "LV", "city": "Las Vegas", "name": "Raiders"},
+        {"id": "NYJ", "city": "New York", "name": "Jets"}
+    ],
+    "14": [
+        {"id": "ARI", "city": "Arizona", "name": "Cardinals"},
+        {"id": "DAL", "city": "Dallas", "name": "Cowboys"}
+    ]
+}
