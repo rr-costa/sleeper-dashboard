@@ -162,7 +162,7 @@ def player_details():
                 continue
             found = True
             if roster.get('owner_id') == user_id:
-                leagues_with_player.append({'league_id': league_id, 'league_name': league.get('name', 'Unknown'), 'roster_position': services.get_roster_position(player_id, roster, league_id), 'roster_id': roster.get('roster_id')})
+                leagues_with_player.append({'league_id': league_id, 'league_name': league.get('name', 'Unknown'), 'roster_position': services.get_roster_position(player_id, roster, league_id)})
             else:
                 leagues_without_players.append({'league_id': league_id, 'league_name': league.get('name', 'Unknown'), 'status': 'TRADE'})
             break
@@ -202,7 +202,12 @@ def nfl_teams():
 @utils.login_required
 def depth_chart(team_abbr):
     chart_data = services.get_nfl_depth_chart(team_abbr, request.args.get('league_id'))
-    return jsonify({'chart': chart_data, 'current_user_id': session.get('user_id')})
+    bye_week = get_bye_weeks().get(team_abbr.upper())
+    return jsonify({
+        'chart': chart_data,
+        'current_user_id': session.get('user_id'),
+        'bye_week': bye_week,
+    })
 
 
 @api.route('/all-leagues')
