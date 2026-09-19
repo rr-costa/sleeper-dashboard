@@ -254,7 +254,7 @@ async function handleDepthChartSelection() {
 
     try {
         const data = await fetchDepthChart(teamAbbr, leagueSelect);
-        renderDepthChart(data.chart, data.current_user_id, teamFullName);
+        renderDepthChart(data.chart, data.current_user_id, teamFullName, data.bye_week);
         container.classList.remove('hidden');
     } catch (error) {
         console.error(error);
@@ -265,11 +265,14 @@ async function handleDepthChartSelection() {
     }
 }
 
-function renderDepthChart(chartData, currentUserId, teamName) {
+function renderDepthChart(chartData, currentUserId, teamName, byeWeek) {
     const header = document.getElementById('depth-chart-header');
     const tableContainer = document.getElementById('depth-chart-table-container');
 
-    header.textContent = `Depth Chart - ${teamName} (by Sleeper.app)`;
+    header.innerHTML = `
+        <span>Depth Chart - ${teamName} (by Sleeper.app)</span>
+        ${byeWeek ? `<small class="depth-chart-bye-week">Bye Week ${byeWeek}</small>` : ''}
+    `;
 
     const legendHtml = `
         <div class="depth-chart-legend" style="margin: 10px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 14px;">
